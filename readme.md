@@ -68,14 +68,14 @@ R6X CYBERSCAN is a **professional security scanning tool** designed specifically
 # 2. Run this one-liner:
 
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force; 
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/YOUR_USERNAME/R6X-CYBERSCAN/main/clients/powershell/R6X-Scanner.ps1" -OutFile "$env:USERPROFILE\Desktop\R6X-Scanner.ps1"; 
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/xotiic4201/R6X-CYBERSCAN/main/clients/powershell/R6X-Scanner.ps1" -OutFile "$env:USERPROFILE\Desktop\R6X-Scanner.ps1"; 
 PowerShell -File "$env:USERPROFILE\Desktop\R6X-Scanner.ps1"
 ```
 
 ### Option 2: Python (Cross-Platform)
 
 ```bash
-# 1. Install Python 3.8 or higher
+# 1. Install Python 3.11 or higher
 # 2. Install the only dependency:
 pip install requests
 
@@ -93,8 +93,8 @@ python r6x_scanner.py
 | **Python GUI** | `r6x_scanner.py` | ~25KB | Windows/Linux/macOS |
 
 ### Direct Links
-- [⬇️ Download PowerShell Version](https://raw.githubusercontent.com/YOUR_USERNAME/R6X-CYBERSCAN/main/clients/powershell/R6X-Scanner.ps1)
-- [⬇️ Download Python Version](https://raw.githubusercontent.com/YOUR_USERNAME/R6X-CYBERSCAN/main/clients/python/r6x_scanner.py)
+- [⬇️ Download PowerShell Version](https://raw.githubusercontent.com/xotiic4201/R6X-CYBERSCAN/main/clients/powershell/R6X-Scanner.ps1)
+- [⬇️ Download Python Version](https://raw.githubusercontent.com/xotiic4201/R6X-CYBERSCAN/main/clients/python/r6x_scanner.py)
 
 ---
 
@@ -264,15 +264,6 @@ Just run the script and enter your name - no configuration needed!
 | Discord bot not responding | Check bot token in Render environment variables |
 | Scan takes too long | First scan is always longest - subsequent scans are faster |
 | "Access Denied" errors | Run PowerShell as Administrator |
-
----
-
-## 📚 Documentation
-
-- [Full User Guide](docs/USER_GUIDE.md)
-- [API Documentation](https://your-render-app.onrender.com/docs)
-- [Discord Bot Setup](docs/DISCORD_BOT.md)
-- [FAQ](docs/FAQ.md)
 
 ---
 
