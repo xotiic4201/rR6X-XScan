@@ -4,7 +4,7 @@
   
 ![R6X CYBERSCAN](https://img.shields.io/badge/R6X-CYBERSCAN-FF003C?style=for-the-badge)
 ![Version](https://img.shields.io/badge/version-1.0.0-00FF9D?style=for-the-badge)
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=for-the-badge)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C-blue?style=for-the-badge)
 
 **Check if someone is cheating or keep your system clean for competitive play**
 
