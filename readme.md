@@ -199,32 +199,13 @@ Computer: DESKTOP-ABC123
 • a1b2c3d4e5.exe (HIGH)
 • dapper.dll (MEDIUM)
 ```
-
----
-
-## 🛠️ Configuration
-
-### For Server Owners (Discord Setup)
-
-1. **Create a Discord Bot** at https://discord.com/developers/applications
-2. **Get your Bot Token** and add to Render environment variables
-3. **Get your Channel ID** (right-click channel → Copy ID)
-4. **Add to Render**:
-   ```
-   DISCORD_BOT_TOKEN=your_bot_token_here
-   DISCORD_CHANNEL_ID=your_channel_id_here
-   ```
-
-### For Users
-Just run the script and enter your name - no configuration needed!
-
 ---
 
 ## 📋 Requirements
 
 ### PowerShell Version
-- Windows 7/8/10/11
-- PowerShell 5.0 or higher
+- Windows 11
+- PowerShell 3.11
 - No additional software needed
 
 ### Python Version
