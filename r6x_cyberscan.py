@@ -1,8 +1,4 @@
-#!/usr/bin/env python3
-"""
-R6X XScan - Advanced System Security Scanner
-Compiled EXE version for Windows
-"""
+
 
 import os
 import sys
