@@ -8,8 +8,6 @@
 
 **Check if someone is cheating or keep your system clean for competitive play**
 
-[Features](#features) • [Quick Start](#quick-start) • [Download](#download) • [Documentation](#documentation) • [Discord](#discord-bot)
-
 </div>
 
 ---
