@@ -1,12 +1,16 @@
+Here's the updated README that matches the new backend + scanner flow:
+
+```markdown
 # R6X CYBERSCAN - Anti-Cheat Scanner for Rainbow Six Siege
 
 <div align="center">
   
 ![R6X CYBERSCAN](https://img.shields.io/badge/R6X-CYBERSCAN-FF003C?style=for-the-badge)
-![Version](https://img.shields.io/badge/version-1.0.0-00FF9D?style=for-the-badge)
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-4.0.0-00FF9D?style=for-the-badge)
+![Platform](https://img.shields.io/badge/platform-Windows-blue?style=for-the-badge)
+![Discord](https://img.shields.io/badge/Discord-Bot-5865F2?style=for-the-badge)
 
-**Check if someone is cheating or keep your system clean for competitive play**
+**Professional security scanning with Discord key system - Keep your community cheat-free**
 
 </div>
 
@@ -14,17 +18,24 @@
 
 ## 🎯 What is R6X CYBERSCAN?
 
-R6X CYBERSCAN is a **professional security scanning tool** designed specifically for the **Rainbow Six Siege community**. It scans a user's system for cheat-related files, suspicious executables, and gaming account information to help determine if someone might be using unauthorized software.
+R6X CYBERSCAN is a **professional security scanning tool** designed specifically for the **Rainbow Six Siege community**. It features a **Discord bot for key management** and a **Windows scanner** that checks systems for cheat-related files, suspicious executables, and gaming account information.
+
+### 🆕 New Features in v4.0
+- 🔑 **Key System** - Users need a valid key to scan
+- 🤖 **Discord Slash Commands** - Generate and manage keys directly in Discord
+- 🖱️ **Logitech Script Detection** - Flags ALL .lua scripts with feature analysis
+- 🚀 **Instant Bot Startup** - Bot runs immediately, keys can be generated while scanner waits
+- 📊 **Enhanced Logging** - More detailed scan results with feature detection
 
 ### Why Use It?
 
 | For | Benefit |
 |-----|---------|
 | **Server Admins** | Verify members before granting access to competitive servers |
-| **Tournament Organizers** | Quick pre-match checks for all participants |
-| **Team Leaders** | Screen potential teammates before roster additions |
-| **Community Managers** | Maintain clean, cheat-free environments |
-| **Players** | Prove your system is clean to join trusted communities |
+| **Tournament Organizers** | Quick pre-match checks with key-based access control |
+| **Team Leaders** | Screen potential teammates with verified scans |
+| **Community Managers** | Maintain clean, cheat-free environments with key system |
+| **Players** | Prove your system is clean with timestamped, verified scans |
 
 ---
 
@@ -33,52 +44,77 @@ R6X CYBERSCAN is a **professional security scanning tool** designed specifically
 | Category | What We Scan For | Why It Matters |
 |----------|------------------|----------------|
 | 🎮 **R6 Accounts** | Local Rainbow Six Siege profiles | Multiple accounts might indicate account sharing/selling |
-| 🔄 **Steam Accounts** | Steam login history | Multiple Steam accounts on one PC |
+| 🔄 **Steam Accounts** | Steam login history from loginusers.vdf | Multiple Steam accounts on one PC |
 | ⚠️ **Suspicious Files** | 10-character random .exe files, Dapper.dll | Common cheat file patterns |
-| 📁 **Executables** | .exe and .rar files in user folders | Cheats often hide in user directories |
-| 📋 **Prefetch Data** | Program execution history | See what programs have been run recently |
-| 🛡️ **Antivirus Status** | Third-party AV software | Some cheats disable antivirus |
-| 💻 **System Info** | Windows install date, computer name | Track system changes |
-| 🖱️ **Logitech Scripts** | LGHUB script files | Mouse macros that can be used for cheating |
+| 📁 **Executables** | .rar and .exe files in user folders | Cheats often hide in user directories |
+| 📋 **Prefetch Data** | Program execution history with timestamps | See what programs have been run recently |
+| 🛡️ **Antivirus Status** | Third-party AV software and Defender status | Some cheats disable antivirus |
+| 💻 **System Info** | Windows install date, Secure Boot, DMA protection | Track system changes and security features |
+| 🖱️ **Logitech Scripts** | ALL .lua files with feature detection | Mouse macros with recoil, rapid fire, aim assist detection |
+| 📝 **Registry Analysis** | BAM, AppCompat, AppSwitched entries | Find executed programs |
+| 🖥️ **Hardware Info** | Monitor serials, PCIe devices | Hardware fingerprinting |
 
 ---
 
 ## ✨ Features
 
-✅ **No Installation Required** - PowerShell version runs instantly  
-✅ **Cross-Platform** - Python version works on Windows, Mac, Linux  
-✅ **Discord Integration** - Results auto-send to your Discord channel  
-✅ **No Login Required** - Just enter a name and scan  
+✅ **Key-Based Access** - Users need valid keys to scan  
+✅ **Discord Slash Commands** - `/generate_key`, `/list_keys`, `/validate_key`, `/stats`  
+✅ **Instant Bot Startup** - Bot starts immediately when scanner runs  
+✅ **No Installation Required** - Single executable scanner  
 ✅ **Complete System Scan** - Scans all common cheat locations  
+✅ **Logitech Script Analysis** - Detects recoil, rapid fire, aim assist features  
 ✅ **Account Detection** - Finds R6 and Steam accounts  
-✅ **Clean UI** - Professional dark theme with R6X branding  
-✅ **Real-Time Progress** - Watch the scan as it happens  
-✅ **Free & Open Source** - MIT License  
+✅ **Professional UI** - Dark theme with real-time progress  
+✅ **Clipboard Export** - Copy results instantly  
+✅ **Render Backend** - 24/7 availability for key management  
+
+---
+
+## 🔑 Key System
+
+Users must have a valid key to run a scan. Keys are generated in Discord:
+
+### Discord Slash Commands
+
+| Command | Description | Permission |
+|---------|-------------|------------|
+| `/generate_key @user [days]` | Generate a new key for a user | Admin Only |
+| `/list_keys @user` | List all keys for a user | Anyone |
+| `/validate_key @user` | Check if user has valid key | Anyone |
+| `/stats` | Show bot statistics | Anyone |
+| `/help` | Show available commands | Anyone |
+
+### Key Format
+```
+R6X-ABCDE-FGHIJ-KLMNO
+```
+
+Keys are:
+- Valid for 30 days by default
+- Single-use (one scan per key)
+- Tracked per user
+- Stored securely on Render
 
 ---
 
 ## 🚀 Quick Start
 
-### Option 1: PowerShell (Windows - No Install)
-
-```powershell
-# 1. Open PowerShell as Administrator
-# 2. Run this one-liner:
-
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force; 
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/xotiic4201/R6X-CYBERSCAN/main/clients/powershell/R6X-Scanner.ps1" -OutFile "$env:USERPROFILE\Desktop\R6X-Scanner.ps1"; 
-PowerShell -File "$env:USERPROFILE\Desktop\R6X-Scanner.ps1"
+### Step 1: Get Your Key
+Join our Discord server and use `/generate_key YOUR_USER_ID` to get a key:
+```
+/generate_key 123456789012345678 30
 ```
 
-### Option 2: Python (Cross-Platform)
+### Step 2: Download the Scanner
+[⬇️ Download R6XScan.exe](https://pcchekerb.onrender.com/download-exe)
 
+### Step 3: Run and Login
 ```bash
-# 1. Install Python 3.11 or higher
-# 2. Install the only dependency:
-pip install requests
-
-# 3. Download and run:
-python r6x_scanner.py
+# Just double-click R6XScan.exe
+# The Discord bot starts immediately
+# Enter your Discord ID when prompted
+# Scan runs automatically
 ```
 
 ---
@@ -87,93 +123,91 @@ python r6x_scanner.py
 
 | Version | File | Size | Platform |
 |---------|------|------|----------|
-| **PowerShell** | `R6X-Scanner.ps1` | ~50KB | Windows 7/8/10/11 |
-| **Python GUI** | `r6x_scanner.py` | ~25KB | Windows/Linux/macOS |
+| **Windows Executable** | `R6XScan.exe` | ~10MB | Windows 10/11 |
+| **Python Source** | `scanner.py` | ~150KB | Windows (with Python) |
 
 ### Direct Links
-- [⬇️ Download PowerShell Version](https://raw.githubusercontent.com/xotiic4201/R6X-CYBERSCAN/main/clients/powershell/R6X-Scanner.ps1)
-- [⬇️ Download Python Version](https://raw.githubusercontent.com/xotiic4201/R6X-CYBERSCAN/main/clients/python/r6x_scanner.py)
+- [⬇️ Download R6XScan.exe](https://pcchekerb.onrender.com/download-exe)
+- [⬇️ View Source Code](https://github.com/xotiic4201/R6X-CYBERSCAN)
 
 ---
 
-## 🖥️ Screenshots
+## 🖥️ Scanner Interface
 
-### PowerShell Client
 ```
-┌─────────────────────────────────────┐
-│  🔍 R6X CYBERSCAN v4.0              │
-├─────────────────────────────────────┤
-│ Your Name: [Player1    ]             │
-│                                      │
-│ [▶ START COMPLETE SCAN]              │
-│                                      │
-│ 🤖 Discord Bot: Active               │
-│                                      │
-│ [14:23:45] ╔════════════════════╗    │
-│ [14:23:45] ║ SCAN COMPLETE      ║    │
-│ [14:23:45] ╚════════════════════╝    │
-│ [14:23:45] Files Scanned: 1,234      │
-│ [14:23:45] Threats Found: 2 ⚠️       │
-│ [14:23:45] R6 Accounts: 1            │
-│ [14:23:45] Steam Accounts: 1         │
-│                                      │
-│ [===============] 100%               │
-└─────────────────────────────────────┘
-```
+╔══════════════════════════════════════════════════════════════╗
+║                     R6X CYBERSCAN v4.0                       ║
+║                Advanced Security Scanner                      ║
+║              [ Discord Bot Already Running ]                  ║
+╠══════════════════════════════════════════════════════════════╣
+║  User ID: 123456789012345678                                  ║
+║  Scan ID: R6X-20240315-143022-345678                         ║
+╚══════════════════════════════════════════════════════════════╝
 
-### Python Client
-```
-╔═════════════════════════════════════╗
-║     🔍 R6X CYBERSCAN v4.0           ║
-╠═════════════════════════════════════╣
-║  Your Name: ┌────────────────────┐  ║
-║             │ Player1            │  ║
-║             └────────────────────┘  ║
-║  [▶ START COMPLETE SCAN]            ║
-║                                      ║
-║  🤖 Discord Bot: ● Active            ║
-║                                      ║
-║  [14:23:45] Scanning files...        ║
-║  [14:23:52] Found 1,234 files        ║
-║  [14:23:58] Found 2 suspicious       ║
-║  [14:24:00] Scan complete!           ║
-║                                      ║
-║  [██████████████████████████] 100%   ║
-╚═════════════════════════════════════╝
+▶ Windows Installation Date
+  ✓ Windows Install Date: 2023-08-15
+
+▶ File Scan Results
+  ✓ Found 1,234 files
+
+▶ Suspicious Files
+  ✓ No suspicious files found
+
+▶ Logitech Script Detection
+  ⚠ Found 2 .lua scripts (ALL flagged)
+     1. recoil_script.lua [Rainbow Six Siege] (RECOIL, RAPID)
+     2. aimbot.lua [Valorant] (AIM)
+
+▶ Rainbow Six Siege Accounts
+  ✓ Found 1 R6 accounts
+
+▶ Steam Accounts
+  ✓ Found 1 Steam accounts
+
+════════════════════════════════════════════════════════════════
+SCAN COMPLETE
+════════════════════════════════════════════════════════════════
+Duration: 45.23 seconds
+Files Scanned: 1,234
+Suspicious Files: 0
+R6 Accounts: 1
+Steam Accounts: 1
+Logitech Scripts: 2
+Log saved to: C:\Users\Player1\Desktop\R6X_Scan_20240315_143022.txt
 ```
 
 ---
 
-## 🤖 Discord Bot Integration
+## 🤖 Discord Integration
 
-When you run a scan, results are automatically sent to your Discord channel:
+### Bot Status
+When you run the scanner, the Discord bot automatically connects:
+```
+✅ Discord bot connected as R6XScanner#1234
+✅ Bot ID: 123456789012345678
+✅ Slash commands available: /generate_key, /list_keys, /validate_key, /stats, /help
+```
+
+### Scan Results
+Results are automatically sent to your Discord channel:
 
 ```
-📊 **New Scan: Player1**
-Computer: DESKTOP-ABC123
+📊 **R6X CyberScan Results**
+Scan completed for <@123456789012345678>
 
 📁 Files Scanned: 1,234
-🚨 Threats Found: 2 ⚠️
+⚠️ Suspicious Files: 0
 🎮 R6 Accounts: 1
-🔄 Steam Accounts: 1
-💻 Windows Install: 2023-08-15
-🛡️ Antivirus: Windows Defender Only
+🎮 Steam Accounts: 1
+⏱️ Duration: 45.23s
+🎮 Logitech: 🟢 Running | Scripts: 2
 
-⚠️ **Suspicious Files Found**
-• a1b2c3d4e5.exe (HIGH)
-• dapper.dll (MEDIUM)
+📜 Scripts Found:
+recoil_script.lua [R6] (R,F)
+aimbot.lua [VAL] (A)
 
-🎮 **Gaming Accounts Found**
-• R6: Player1
-• Steam: Player1
+Scan ID: R6X-20240315-143022-345678
 ```
-
-### Discord Commands
-| Command | Description |
-|---------|-------------|
-| `!scan username` | Get the latest scan results for a user |
-| `!stats` | Show bot statistics (total scans, users) |
-| `!help` | Show available commands |
 
 ---
 
@@ -182,55 +216,56 @@ Computer: DESKTOP-ABC123
 ### Clean System
 ```
 ✅ Files Scanned: 1,234
-✅ Threats Found: 0
+✅ Suspicious Files: 0
 ✅ R6 Accounts: 1
 ✅ Steam Accounts: 1
+✅ Logitech Scripts: 0
 ✅ System appears clean!
 ```
 
 ### Suspicious System
 ```
 ⚠️ Files Scanned: 1,234
-⚠️ Threats Found: 2
+⚠️ Suspicious Files: 2
 ⚠️ R6 Accounts: 3
 ⚠️ Steam Accounts: 2
+⚠️ Logitech Scripts: 3 (RECOIL, RAPID, AIM detected)
 
-⚠️ WARNING: Found 2 suspicious files!
+⚠️ WARNING: Found suspicious files!
 • a1b2c3d4e5.exe (HIGH)
 • dapper.dll (MEDIUM)
+
+⚠️ WARNING: Logitech scripts with cheat features!
+• recoil_script.lua - Recoil control for R6
+• rapidfire.lua - Rapid fire macro
+• aimbot.lua - Aim assistance
 ```
+
 ---
 
 ## 📋 Requirements
 
-### PowerShell Version
-- Windows 11
-- PowerShell 3.11
-- No additional software needed
+### For Running Scans
+- Windows 10/11 (64-bit)
+- Internet connection (for key validation)
+- Discord account (for key generation)
 
-### Python Version
-- Python 3.8 or higher
-- `requests` library (`pip install requests`)
-
----
-
-## 🚦 How to Use
-
-1. **Download** your preferred version
-2. **Run** the application (PowerShell as Administrator for best results)
-3. **Enter** your name or username
-4. **Click** "START COMPLETE SCAN"
-5. **Wait** for the scan to complete (30-60 seconds)
-6. **Share** results with your community via Discord
+### Optional (for better detection)
+- Run as Administrator for full system access
+- PowerShell 5.1 or higher
 
 ---
 
-## ⚠️ Important Notes
+## 🚦 How to Use (Step by Step)
 
-- **Run PowerShell version as Administrator** for full system access
-- **Scans only file names and metadata** - never uploads file contents
-- **Results are anonymous** - only the username you provide is stored
-- **Open source** - fully transparent about what it does
+1. **Join our Discord server** and get your user ID
+2. **Generate a key** using `/generate_key YOUR_USER_ID`
+3. **Download** `R6XScan.exe`
+4. **Run the scanner** (double-click)
+5. **Watch the bot start** automatically
+6. **Enter your Discord ID** when prompted
+7. **Wait for scan** to complete (30-60 seconds)
+8. **Results** appear in Discord and are saved locally
 
 ---
 
@@ -238,25 +273,58 @@ Computer: DESKTOP-ABC123
 
 | Issue | Solution |
 |-------|----------|
-| PowerShell won't run | Run as Administrator, then: `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` |
-| Python not found | Install Python 3.8+ from python.org |
-| Discord bot not responding | Check bot token in Render environment variables |
-| Scan takes too long | First scan is always longest - subsequent scans are faster |
-| "Access Denied" errors | Run PowerShell as Administrator |
+| "No valid key found" | Generate a key in Discord with `/generate_key YOUR_ID` |
+| Bot won't start | Check internet connection and Render status |
+| Scan takes too long | First scan is longest - subsequent scans are faster |
+| "Access Denied" errors | Run as Administrator |
+| Discord commands not working | Bot takes 5-10 seconds to initialize |
+| Results not in Discord | Check channel ID in backend configuration |
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│   Discord   │────▶│   Render     │────▶│   Scanner   │
+│   /command  │     │   Backend    │     │  (Local)    │
+└─────────────┘     └──────────────┘     └─────────────┘
+       │                   │                    │
+       │                   │                    │
+       ▼                   ▼                    ▼
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│ Generate    │     │ Store Keys   │     │ Run Scan    │
+│ Keys        │     │ Track Scans  │     │ Send Results│
+└─────────────┘     └──────────────┘     └─────────────┘
+```
+
+1. **Discord Bot** (in scanner) - Handles key generation commands
+2. **Render Backend** - Validates keys, tracks scans
+3. **Scanner** - Runs locally, performs system analysis
+
+---
+
+## ⚠️ Important Notes
+
+- **Keys are single-use** - one key = one scan
+- **Bot runs locally** - starts immediately when scanner runs
+- **No data uploaded** - only scan statistics, never file contents
+- **Open source** - fully transparent about what it does
+- **Run as Administrator** for complete system access
+
+---
+
+## 📞 Support
+
+- **GitHub Issues**: [Report bugs](https://github.com/xotiic4201/R6X-CYBERSCAN/issues)
+- **Discord**: [Join our server](https://discord.gg/SVvZFnct37)
+- **Email**: support@r6x-cyberscan.com
 
 ---
 
 ## ⚠️ Disclaimer
 
 R6X CYBERSCAN is a security auditing tool. It should be used responsibly and in accordance with all applicable laws and terms of service. The developers are not responsible for misuse of this software. Always obtain consent before scanning someone else's system.
-
----
-
-## 📞 Support
-
-- **GitHub Issues**: [Report bugs](https://github.com/xotiic4201/rR6X-XScan/issues))
-- **Discord**: [Join our server](https://discord.gg/SVvZFnct37)
-
 
 ---
 
