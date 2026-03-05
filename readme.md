@@ -126,7 +126,7 @@ Join our Discord server and use `/generate_key YOUR_USER_ID` to get a key:
 
 ### Direct Links
 - [⬇️ Download R6XScan.exe](https://www.dropbox.com/scl/fi/monrwstbsvm5yt3f4cob0/R6XScan.exe?rlkey=33povief4dlpqvqcf7v85huzg&st=tjpfe2ef&dl=0)
-- [⬇️ View Source Code](https://github.com/xotiic4201/R6X-Scan)
+- [⬇️ View Source Code]([https://github.com/xotiic4201/R6X-Scan](https://github.com/xotiic4201/rR6X-XScan/blob/main/r6x_cyberscan.py))
 
 ---
 
