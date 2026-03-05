@@ -1,6 +1,4 @@
-Here's the updated README that matches the new backend + scanner flow:
 
-```markdown
 # R6X CYBERSCAN - Anti-Cheat Scanner for Rainbow Six Siege
 
 <div align="center">
