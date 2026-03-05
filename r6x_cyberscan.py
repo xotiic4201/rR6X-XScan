@@ -1,156 +1,267 @@
-
-
 import os
 import sys
-import json
 import time
+import json
 import platform
 import subprocess
 import re
+import winreg
+import ctypes
+import threading
+import asyncio
 from datetime import datetime
-import argparse
+from pathlib import Path
 from typing import Dict, List, Any, Optional
+import requests
+import pyperclip
 
-# Try to import Windows-specific modules
+# Try to import psutil for process detection
 try:
-    import winreg
-    import ctypes
-    WINDOWS_AVAILABLE = True
+    import psutil
+    PSUTIL_AVAILABLE = True
 except ImportError:
-    WINDOWS_AVAILABLE = False
+    PSUTIL_AVAILABLE = False
+    print("⚠️ psutil not installed. Install with: pip install psutil")
 
-# Try to import requests
+# Try to import discord
 try:
-    import requests
-    REQUESTS_AVAILABLE = True
+    import discord
+    from discord.ext import commands
+    from discord import Embed, Color, File, app_commands
+    DISCORD_AVAILABLE = True
 except ImportError:
-    REQUESTS_AVAILABLE = False
+    DISCORD_AVAILABLE = False
+    print("⚠️ Discord.py not installed. Install with: pip install discord.py")
 
 # ==================== CONFIGURATION ====================
-# These will be replaced by the bot when serving
-API_URL = "https://bot-hosting-b-ga04.onrender.com/api/scan"
-API_KEY = "rnd_o2SUQpg4Ln3EsJSJsOYOeCHnLnId"
+RENDER_API_URL = "Your Render API URL"  
+API_KEY = "Your Render API key"  
 
-# Color codes for terminal (Windows compatible)
+# ANSI colors for terminal output
 class Colors:
     HEADER = '\033[95m'
-    BLUE = '\033[94m'
-    CYAN = '\033[96m'
+    DARK_RED = '\033[31m'
+    RED = '\033[91m'
     GREEN = '\033[92m'
     YELLOW = '\033[93m'
-    RED = '\033[91m'
+    BLUE = '\033[94m'
     MAGENTA = '\033[95m'
-    GRAY = '\033[90m'
+    CYAN = '\033[96m'
     WHITE = '\033[97m'
+    GRAY = '\033[90m'
     END = '\033[0m'
     BOLD = '\033[1m'
 
-# Disable colors if not supported
-if platform.system() == 'Windows':
-    try:
-        import ctypes
-        kernel32 = ctypes.windll.kernel32
-        kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
-    except:
-        # Colors not supported
-        for attr in dir(Colors):
-            if not attr.startswith('__'):
-                setattr(Colors, attr, '')
-
-def print_color(text, color=Colors.WHITE, end='\n'):
-    """Print colored text"""
-    print(f"{color}{text}{Colors.END}", end=end)
-
-def clear_screen():
-    """Clear terminal screen"""
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
-
-# ==================== MAIN SCANNER CLASS ====================
-class R6XScanner:
-    def __init__(self, user_id: str):
-        self.user_id = user_id
-        self.scan_id = None
-        self.start_time = None
-        self.end_time = None
-        
-        # Check requirements
-        if not WINDOWS_AVAILABLE:
-            print_color("❌ This scanner requires Windows!", Colors.RED)
-            sys.exit(1)
-        
-        if not REQUESTS_AVAILABLE:
-            print_color("❌ Requests library not found. Please install: pip install requests", Colors.RED)
-            sys.exit(1)
-        
-        # Initialize scan data
-        self.scan_data = {
-            "scan_id": "",
-            "user_id": user_id,
-            "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            "system_info": {},
-            "security": {},
-            "threats": [],
-            "files": {
-                "exe_files": [],
-                "rar_files": [],
-                "suspicious": [],
-                "exe_count": 0,
-                "rar_count": 0,
-                "sus_count": 0
-            },
-            "executed_programs": [],
-            "game_bans": {
-                "rainbow_six": [],
-                "steam": []
-            },
-            "prefetch": [],
-            "logitech_scripts": [],
-            "hardware": {
-                "monitors": [],
-                "pcie_devices": []
-            }
+# ==================== LOGITECH SCRIPT DETECTION ====================
+class LogitechScriptDetector:
+    """Detect ALL Logitech scripts (flags every .lua file)"""
+    
+    @staticmethod
+    def find_scripts():
+        """Find all Logitech scripts on the system (flags ALL .lua files)"""
+        results = {
+            'total_scripts': 0,
+            'all_scripts': [],  # Contains ALL scripts found
+            'script_locations': [],
+            'logitech_running': False
         }
-
-    def print_banner(self):
-        """Print the R6X banner"""
-        banner = """
-╔══════════════════════════════════════════════════════════════╗
-║                     R6X XScan v1.0                           ║
-║                Advanced System Security Scanner               ║
-║                      [ Discord Integrated ]                   ║
-╚══════════════════════════════════════════════════════════════╝
-"""
-        print_color(banner, Colors.CYAN)
-        print_color("", Colors.END)
-        print_color(f"User ID: {self.user_id}", Colors.YELLOW)
-        print_color("", Colors.END)
-
-    def get_scan_id_from_bot(self):
-        """Get a scan ID from the bot by starting a scan"""
+        
+        if platform.system() != 'Windows':
+            return results
+        
+        # Common Logitech script locations
+        logitech_paths = [
+            os.path.join(os.environ.get('LOCALAPPDATA', ''), "LGHUB", "scripts"),
+            os.path.join(os.environ.get('LOCALAPPDATA', ''), "Logitech", "LGHUB", "scripts"),
+            os.path.join(os.environ.get('PROGRAMDATA', ''), "Logitech", "LGHUB", "scripts"),
+            os.path.join(os.path.expanduser('~'), "Documents", "Logitech", "LGHUB", "scripts"),
+            os.path.join(os.path.expanduser('~'), "AppData", "Roaming", "Logitech", "LGHUB", "scripts"),
+            "C:\\Program Files\\Logitech Gaming Software\\Scripts",
+            "C:\\Program Files (x86)\\Logitech Gaming Software\\Scripts",
+            os.path.join(os.path.expanduser('~'), "Documents", "Logitech", "G-series Scripts"),
+            os.path.join(os.environ.get('PROGRAMDATA', ''), "Logitech", "G-series Software", "Scripts"),
+            "C:\\Program Files\\Logitech Gaming Software\\Resources\\Scripts",
+            "C:\\Program Files (x86)\\Logitech Gaming Software\\Resources\\Scripts",
+            os.path.join(os.environ.get('APPDATA', ''), "Logitech", "LGHUB", "scripts"),
+            os.path.join(os.environ.get('LOCALAPPDATA', ''), "Logitech", "Logitech Gaming Software", "Scripts"),
+            "C:\\Users\\Public\\Documents\\Logitech\\Scripts",
+            os.path.join(os.path.expanduser('~'), "Downloads", "Logitech Scripts"),
+            os.path.join(os.path.expanduser('~'), "Desktop", "Logitech Scripts"),
+        ]
+        
+        # Check if Logitech software is running
+        results['logitech_running'] = LogitechScriptDetector.get_logitech_status().get('running', False)
+        
+        # Scan each path - FLAG ALL .lua FILES
+        for path in logitech_paths:
+            if path and os.path.exists(path):
+                try:
+                    for root, dirs, files in os.walk(path):
+                        for file in files:
+                            if file.lower().endswith('.lua'):
+                                file_path = os.path.join(root, file)
+                                results['total_scripts'] += 1
+                                results['script_locations'].append(file_path)
+                                
+                                # Get file info
+                                script_info = {
+                                    'name': file,
+                                    'path': file_path,
+                                    'size': os.path.getsize(file_path) if os.path.exists(file_path) else 0,
+                                    'modified': datetime.fromtimestamp(os.path.getmtime(file_path)).isoformat() if os.path.exists(file_path) else None
+                                }
+                                
+                                # Try to read script content
+                                try:
+                                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                                        content = f.read(2000)  # Read first 2000 chars
+                                        script_info['preview'] = content[:200] + "..." if len(content) > 200 else content
+                                        
+                                        # Check for game references
+                                        if re.search(r'rainbow|six|siege|r6|tomclancy', content, re.IGNORECASE):
+                                            script_info['game'] = 'Rainbow Six Siege'
+                                        elif re.search(r'valorant|valo', content, re.IGNORECASE):
+                                            script_info['game'] = 'Valorant'
+                                        elif re.search(r'csgo|counter|strike|cs2', content, re.IGNORECASE):
+                                            script_info['game'] = 'CS:GO/CS2'
+                                        elif re.search(r'fortnite|fn', content, re.IGNORECASE):
+                                            script_info['game'] = 'Fortnite'
+                                        elif re.search(r'apex|legends', content, re.IGNORECASE):
+                                            script_info['game'] = 'Apex Legends'
+                                        elif re.search(r'cod|callofduty|warzone|mw2|mw3', content, re.IGNORECASE):
+                                            script_info['game'] = 'Call of Duty'
+                                        elif re.search(r'pubg|playerunknown', content, re.IGNORECASE):
+                                            script_info['game'] = 'PUBG'
+                                        elif re.search(r'overwatch|ow2', content, re.IGNORECASE):
+                                            script_info['game'] = 'Overwatch'
+                                        
+                                        # Check for recoil patterns
+                                        if re.search(r'recoil|antirecoil|no recoil|compensat', content, re.IGNORECASE):
+                                            script_info['has_recoil'] = True
+                                        
+                                        # Check for mouse movement
+                                        if re.search(r'move|movement|mousemove|moverelative', content, re.IGNORECASE):
+                                            script_info['has_mouse_movement'] = True
+                                        
+                                        # Check for rapid fire
+                                        if re.search(r'rapid|fastfire|autofire|spam', content, re.IGNORECASE):
+                                            script_info['has_rapid_fire'] = True
+                                        
+                                        # Check for aim assistance
+                                        if re.search(r'aim|target|lockon|snap|tracking', content, re.IGNORECASE):
+                                            script_info['has_aim_assist'] = True
+                                        
+                                        # Check for timing controls
+                                        if re.search(r'sleep|wait|delay|timer', content, re.IGNORECASE):
+                                            script_info['has_timing'] = True
+                                        
+                                except Exception as e:
+                                    script_info['read_error'] = str(e)
+                                
+                                results['all_scripts'].append(script_info)
+                                
+                except Exception as e:
+                    print(f"{Colors.YELLOW}⚠ Error scanning {path}: {e}{Colors.END}")
+        
+        return results
+    
+    @staticmethod
+    def get_logitech_status():
+        """Check if Logitech software is running"""
+        if platform.system() != 'Windows':
+            return {'running': False}
+        
+        if not PSUTIL_AVAILABLE:
+            return {'running': False, 'error': 'psutil not installed'}
+        
         try:
-            print_color("🔄 Requesting scan ID from Discord bot...", Colors.CYAN)
+            logitech_processes = []
+            for proc in psutil.process_iter(['name', 'pid', 'exe']):
+                try:
+                    name = proc.info['name'].lower() if proc.info['name'] else ''
+                    if any(x in name for x in ['logitech', 'lghub', 'lgs', 'logi', 'ghub']):
+                        logitech_processes.append({
+                            'name': proc.info['name'],
+                            'pid': proc.info['pid'],
+                            'exe': proc.info['exe']
+                        })
+                except:
+                    continue
             
-            # Make API call to get a new scan ID
+            return {
+                'running': len(logitech_processes) > 0,
+                'processes': logitech_processes
+            }
+        except Exception as e:
+            return {'running': False, 'error': str(e)}
+
+# ==================== DISCORD BOT WITH SLASH COMMANDS ====================
+class R6XBot(commands.Bot):
+    """Discord bot with slash commands for key management"""
+    
+    def __init__(self, render_api_url: str, api_key: str):
+        intents = discord.Intents.default()
+        intents.message_content = True
+        super().__init__(command_prefix='!', intents=intents)
+        self.render_api_url = render_api_url
+        self.api_key = api_key
+        self.scanner = None
+        self.ready = False
+        
+    async def setup_hook(self):
+        """Setup slash commands"""
+        await self.add_cog(KeyManagement(self))
+        await self.tree.sync()  # Sync slash commands with Discord
+        print(f"{Colors.GREEN}✅ Slash commands synced{Colors.END}")
+    
+    async def on_ready(self):
+        """Called when bot is ready"""
+        self.ready = True
+        print(f"{Colors.GREEN}✅ Discord bot connected as {self.user.name}{Colors.END}")
+        print(f"{Colors.GREEN}✅ Bot ID: {self.user.id}{Colors.END}")
+        print(f"{Colors.GREEN}✅ Slash commands available: /generate_key, /list_keys, /validate_key, /stats, /help{Colors.END}")
+        
+        # Set bot status
+        await self.change_presence(
+            activity=discord.Activity(
+                type=discord.ActivityType.watching,
+                name="for /commands"
+            )
+        )
+
+class KeyManagement(commands.Cog):
+    """Key management commands"""
+    
+    def __init__(self, bot: R6XBot):
+        self.bot = bot
+    
+    @app_commands.command(name="generate_key", description="Generate a new license key for a user")
+    @app_commands.describe(
+        user_id="Discord User ID to generate key for",
+        duration_days="Number of days the key is valid for (default: 30)"
+    )
+    async def generate_key(
+        self, 
+        interaction: discord.Interaction, 
+        user_id: str,
+        duration_days: int = 30
+    ):
+        """Generate a new key for a user"""
+        await interaction.response.defer()
+        
+        try:
             headers = {
                 'Content-Type': 'application/json',
-                'X-API-Key': API_KEY
+                'X-API-Key': self.bot.api_key
             }
             
             payload = {
-                'user_id': self.user_id
+                'user_id': user_id,
+                'duration_days': duration_days
             }
             
             response = requests.post(
-                f"{API_URL}/start-scan",
+                f"{self.bot.render_api_url}/api/generate-key",
                 headers=headers,
                 json=payload,
                 timeout=30
@@ -158,24 +269,459 @@ class R6XScanner:
             
             if response.status_code == 200:
                 data = response.json()
-                self.scan_id = data.get('scan_id')
-                self.scan_data['scan_id'] = self.scan_id
-                print_color(f"✅ Got scan ID: {self.scan_id}", Colors.GREEN)
-                return True
+                
+                embed = Embed(
+                    title="✅ Key Generated Successfully",
+                    description=f"Key for user {user_id}",
+                    color=Color.green(),
+                    timestamp=datetime.now()
+                )
+                
+                embed.add_field(
+                    name="🔑 Key",
+                    value=f"```\n{data['key']}\n```",
+                    inline=False
+                )
+                
+                embed.add_field(
+                    name="⏰ Expires",
+                    value=f"```\n{data['expires_at']}\n```",
+                    inline=True
+                )
+                
+                embed.add_field(
+                    name="📅 Duration",
+                    value=f"```\n{duration_days} days\n```",
+                    inline=True
+                )
+                
+                embed.set_footer(text=f"Generated by {interaction.user.name}")
+                
+                await interaction.followup.send(embed=embed)
             else:
-                print_color(f"❌ Failed to get scan ID: {response.status_code}", Colors.RED)
-                return False
+                await interaction.followup.send(
+                    f"❌ Failed to generate key: {response.status_code}",
+                    ephemeral=True
+                )
                 
         except Exception as e:
-            print_color(f"❌ Error getting scan ID: {e}", Colors.RED)
-            return False
-
-    # ==================== SYSTEM INFO FUNCTIONS ====================
-    def get_system_info(self):
-        """Collect system information"""
-        print_color("📊 Collecting System Information...", Colors.CYAN)
+            await interaction.followup.send(
+                f"❌ Error: {str(e)}",
+                ephemeral=True
+            )
+    
+    @app_commands.command(name="list_keys", description="List all keys for a user")
+    @app_commands.describe(user_id="Discord User ID to list keys for")
+    async def list_keys(self, interaction: discord.Interaction, user_id: str):
+        """List all keys for a user"""
+        await interaction.response.defer()
         
-        # Windows Install Date
+        try:
+            headers = {'X-API-Key': self.bot.api_key}
+            
+            response = requests.get(
+                f"{self.bot.render_api_url}/api/user/keys/{user_id}",
+                headers=headers,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                if not data['keys']:
+                    await interaction.followup.send(
+                        f"ℹ️ No keys found for user {user_id}",
+                        ephemeral=True
+                    )
+                    return
+                
+                embed = Embed(
+                    title=f"🔑 Keys for User {user_id}",
+                    description=f"Total Keys: {data['total_keys']}",
+                    color=Color.blue(),
+                    timestamp=datetime.now()
+                )
+                
+                # Count valid keys
+                valid_count = sum(1 for k in data['keys'] if k.get('valid', False))
+                embed.add_field(name="✅ Valid Keys", value=str(valid_count), inline=True)
+                embed.add_field(name="❌ Used/Expired", value=str(len(data['keys']) - valid_count), inline=True)
+                
+                # Show first 5 keys
+                for i, key_info in enumerate(data['keys'][:5], 1):
+                    status = "✅ VALID" if key_info.get('valid') else "❌ USED/EXPIRED"
+                    expires = key_info.get('expires_at', 'Unknown')[:10]  # Just show date
+                    
+                    embed.add_field(
+                        name=f"Key {i}: {key_info['key'][:15]}...",
+                        value=f"Status: {status}\nExpires: {expires}",
+                        inline=False
+                    )
+                
+                if len(data['keys']) > 5:
+                    embed.set_footer(text=f"Showing 5 of {len(data['keys'])} keys")
+                
+                await interaction.followup.send(embed=embed)
+            else:
+                await interaction.followup.send(
+                    f"❌ Failed to list keys: {response.status_code}",
+                    ephemeral=True
+                )
+                
+        except Exception as e:
+            await interaction.followup.send(
+                f"❌ Error: {str(e)}",
+                ephemeral=True
+            )
+    
+    @app_commands.command(name="validate_key", description="Check if a user has a valid key")
+    @app_commands.describe(user_id="Discord User ID to validate")
+    async def validate_key(self, interaction: discord.Interaction, user_id: str):
+        """Check if a user has a valid key"""
+        await interaction.response.defer()
+        
+        try:
+            headers = {
+                'Content-Type': 'application/json',
+                'X-API-Key': self.bot.api_key
+            }
+            
+            payload = {'user_id': user_id}
+            
+            response = requests.post(
+                f"{self.bot.render_api_url}/api/validate-key",
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                if data['valid']:
+                    embed = Embed(
+                        title="✅ Valid Key Found",
+                        description=f"User {user_id} has {data['available_keys']} valid key(s)",
+                        color=Color.green()
+                    )
+                else:
+                    embed = Embed(
+                        title="❌ No Valid Key",
+                        description=data['message'],
+                        color=Color.red()
+                    )
+                
+                await interaction.followup.send(embed=embed)
+            else:
+                await interaction.followup.send(
+                    f"❌ Failed to validate: {response.status_code}",
+                    ephemeral=True
+                )
+                
+        except Exception as e:
+            await interaction.followup.send(
+                f"❌ Error: {str(e)}",
+                ephemeral=True
+            )
+    
+    @app_commands.command(name="stats", description="Get bot statistics")
+    async def stats(self, interaction: discord.Interaction):
+        """Get bot statistics"""
+        await interaction.response.defer()
+        
+        try:
+            headers = {'X-API-Key': self.bot.api_key}
+            
+            response = requests.get(
+                f"{self.bot.render_api_url}/api/stats",
+                headers=headers,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                embed = Embed(
+                    title="📊 Bot Statistics",
+                    color=Color.gold(),
+                    timestamp=datetime.now()
+                )
+                
+                # Scan stats
+                embed.add_field(
+                    name="📁 Total Scans",
+                    value=f"```\n{data['total_scans']}\n```",
+                    inline=True
+                )
+                
+                embed.add_field(
+                    name="📊 Files Scanned",
+                    value=f"```\n{data['total_files_scanned']}\n```",
+                    inline=True
+                )
+                
+                embed.add_field(
+                    name="⚠️ Suspicious",
+                    value=f"```\n{data['total_suspicious_files']}\n```",
+                    inline=True
+                )
+                
+                # Key stats
+                key_stats = data.get('key_stats', {})
+                embed.add_field(
+                    name="🔑 Total Keys",
+                    value=f"```\n{key_stats.get('total_keys', 0)}\n```",
+                    inline=True
+                )
+                
+                embed.add_field(
+                    name="✅ Valid Keys",
+                    value=f"```\n{key_stats.get('valid_keys', 0)}\n```",
+                    inline=True
+                )
+                
+                embed.add_field(
+                    name="👥 Users",
+                    value=f"```\n{key_stats.get('unique_users', 0)}\n```",
+                    inline=True
+                )
+                
+                embed.add_field(
+                    name="⏱️ Avg Duration",
+                    value=f"```\n{data['average_duration']:.2f}s\n```",
+                    inline=True
+                )
+                
+                embed.add_field(
+                    name="🟢 Active Scans",
+                    value=f"```\n{data['active_scans']}\n```",
+                    inline=True
+                )
+                
+                await interaction.followup.send(embed=embed)
+            else:
+                await interaction.followup.send(
+                    f"❌ Failed to get stats: {response.status_code}",
+                    ephemeral=True
+                )
+                
+        except Exception as e:
+            await interaction.followup.send(
+                f"❌ Error: {str(e)}",
+                ephemeral=True
+            )
+    
+    @app_commands.command(name="help", description="Show available commands")
+    async def help_command(self, interaction: discord.Interaction):
+        """Show help"""
+        embed = Embed(
+            title="🤖 R6X CyberScan Bot Commands",
+            description="Available slash commands:",
+            color=Color.blue()
+        )
+        
+        commands = [
+            ("/generate_key [user_id] [days]", "Generate a new license key"),
+            ("/list_keys [user_id]", "List all keys for a user"),
+            ("/validate_key [user_id]", "Check if user has valid key"),
+            ("/stats", "Show bot statistics"),
+            ("/help", "Show this help message")
+        ]
+        
+        for cmd, desc in commands:
+            embed.add_field(name=cmd, value=desc, inline=False)
+        
+        await interaction.response.send_message(embed=embed)
+
+# ==================== RENDER API FUNCTIONS ====================
+def get_bot_token() -> dict:
+    """Get bot token from Render (no user ID needed)"""
+    try:
+        print(f"{Colors.YELLOW}🔄 Getting bot token from Render...{Colors.END}")
+        
+        headers = {
+            'Content-Type': 'application/json',
+            'X-API-Key': API_KEY
+        }
+        
+        response = requests.get(
+            f"{RENDER_API_URL}/api/bot-token",
+            headers=headers,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            print(f"{Colors.GREEN}✅ Got bot token from Render{Colors.END}")
+            return {
+                'success': True,
+                'bot_token': data['bot_token'],
+                'channel_id': data['channel_id']
+            }
+        else:
+            return {
+                'success': False,
+                'error': f"Failed: {response.status_code}"
+            }
+            
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def login_user(user_id: str) -> dict:
+    """Login user with their Discord ID"""
+    try:
+        print(f"{Colors.YELLOW}🔄 Logging in user {user_id}...{Colors.END}")
+        
+        headers = {
+            'Content-Type': 'application/json',
+            'X-API-Key': API_KEY
+        }
+        
+        payload = {'user_id': user_id}
+        
+        response = requests.post(
+            f"{RENDER_API_URL}/api/login",
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            print(f"{Colors.GREEN}✅ Login successful!{Colors.END}")
+            return {
+                'success': True,
+                'scan_id': data['scan_id'],
+                'message': data['message']
+            }
+        else:
+            error_msg = f"Failed: {response.status_code}"
+            if response.status_code == 403:
+                error_msg = "Invalid or no valid key"
+            elif response.status_code == 401:
+                error_msg = "Invalid API key"
+            
+            return {
+                'success': False,
+                'error': error_msg
+            }
+            
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def notify_scan_complete(scan_id: str, user_id: str, scan_data: dict, logitech_data: dict = None) -> bool:
+    """Notify Render that scan is complete"""
+    try:
+        headers = {
+            'Content-Type': 'application/json',
+            'X-API-Key': API_KEY
+        }
+        
+        payload = {
+            'scan_id': scan_id,
+            'user_id': user_id,
+            'files_scanned': scan_data.get('files_scanned', 0),
+            'suspicious_count': scan_data.get('suspicious_count', 0),
+            'duration': scan_data.get('duration', 0)
+        }
+        
+        if logitech_data:
+            payload['logitech'] = {
+                'total_scripts': logitech_data.get('total_scripts', 0),
+                'logitech_running': logitech_data.get('logitech_running', False),
+                'scripts': logitech_data.get('all_scripts', [])[:10]
+            }
+        
+        response = requests.post(
+            f"{RENDER_API_URL}/api/scan/complete",
+            headers=headers,
+            json=payload,
+            timeout=10
+        )
+        
+        return response.status_code == 200
+    except Exception as e:
+        print(f"{Colors.YELLOW}⚠ Could not notify Render: {e}{Colors.END}")
+        return False
+
+# ==================== SCANNER CLASS ====================
+class R6XCyberScan:
+    def __init__(self, user_id: str, scan_id: str, channel_id: int, bot: R6XBot = None):
+        self.user_id = user_id
+        self.scan_id = scan_id
+        self.channel_id = channel_id
+        self.bot = bot
+        self.name = f"User_{user_id[-4:]}"
+        self.log_file = f"R6X_Scan_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        self.log_path = os.path.join(os.path.expanduser('~'), 'Desktop', self.log_file)
+        self.desktop_path = os.path.join(os.path.expanduser('~'), 'Desktop')
+        self.user_profile = os.path.expanduser('~')
+        self.downloads_path = os.path.join(self.user_profile, 'Downloads')
+        self.logged_paths = set()
+        self.start_time = time.time()
+        self.scan_data = {
+            'files_scanned': 0,
+            'suspicious_count': 0,
+            'r6_count': 0,
+            'steam_count': 0,
+            'duration': 0
+        }
+        self.logitech_results = None
+        self._discord_task = None  # Store the discord task
+        
+    def print_banner(self):
+        """Print the R6X banner"""
+        banner = f"""
+╔══════════════════════════════════════════════════════════════╗
+║                     R6X CYBERSCAN v4.0                       ║
+║                Advanced Security Scanner                      ║
+║              [ Discord Bot Already Running ]                  ║
+╠══════════════════════════════════════════════════════════════╣
+║  User ID: {self.user_id}                                        ║
+║  Scan ID: {self.scan_id}                                      ║
+╚══════════════════════════════════════════════════════════════╝
+"""
+        print(f"{Colors.CYAN}{banner}{Colors.END}")
+    
+    def write_log(self, content: str):
+        """Write to log file"""
+        with open(self.log_path, 'a', encoding='utf-8') as f:
+            f.write(content + '\n')
+    
+    def write_section(self, title: str):
+        """Write a section header"""
+        self.write_log(f"\n{'-'*50}")
+        self.write_log(f"{title}")
+        self.write_log(f"{'-'*50}")
+        print(f"{Colors.BLUE}▶ {title}{Colors.END}")
+    
+    def get_onedrive_path(self) -> str:
+        """Get OneDrive path from registry"""
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\OneDrive")
+            one_drive = winreg.QueryValueEx(key, "UserFolder")[0]
+            winreg.CloseKey(key)
+            if os.path.exists(one_drive):
+                return one_drive
+        except:
+            pass
+        
+        env_one_drive = os.path.join(self.user_profile, "OneDrive")
+        if os.path.exists(env_one_drive):
+            return env_one_drive
+        
+        return None
+    
+    def log_windows_install_date(self):
+        """Log Windows installation date"""
+        self.write_section("Windows Installation Date")
+        
         try:
             result = subprocess.run(
                 ['wmic', 'os', 'get', 'installdate'],
@@ -188,215 +734,84 @@ class R6XScanner:
                     year = install_date_str[:4]
                     month = install_date_str[4:6]
                     day = install_date_str[6:8]
-                    self.scan_data["system_info"]["install_date"] = f"{year}-{month}-{day}"
+                    install_date = f"{year}-{month}-{day}"
+                    self.write_log(f"Windows Installation Date: {install_date}")
+                    print(f"{Colors.GREEN}  ✓ Windows Install Date: {install_date}{Colors.END}")
                 else:
-                    self.scan_data["system_info"]["install_date"] = "Unknown"
+                    self.write_log("Windows Installation Date: Unknown")
             else:
-                self.scan_data["system_info"]["install_date"] = "Unknown"
-            print_color(f"  ✅ Windows Install Date: {self.scan_data['system_info']['install_date']}", Colors.GRAY)
+                self.write_log("Windows Installation Date: Unknown")
         except Exception as e:
-            self.scan_data["system_info"]["install_date"] = "Unknown"
-            print_color(f"  ⚠️ Could not get install date: {e}", Colors.YELLOW)
+            self.write_log(f"Windows Installation Date: Error - {e}")
+            print(f"{Colors.RED}  ✗ Could not get install date{Colors.END}")
+    
+    def find_rar_exe_files(self):
+        """Find .rar and .exe files"""
+        self.write_section("File Scan Results")
+        print(f"{Colors.YELLOW}  Scanning for .rar and .exe files...{Colors.END}")
         
-        # Secure Boot Status
-        try:
-            if os.path.exists("/sys/firmware/efi") or os.path.exists("C:\\Windows\\Panther\\setupact.log"):
-                result = subprocess.run(
-                    ['powershell', '-Command', 'Confirm-SecureBootUEFI'],
-                    capture_output=True, text=True, check=False
-                )
-                if "True" in result.stdout:
-                    self.scan_data["system_info"]["secure_boot"] = "Enabled"
-                elif "False" in result.stdout:
-                    self.scan_data["system_info"]["secure_boot"] = "Disabled"
-                else:
-                    self.scan_data["system_info"]["secure_boot"] = "Not Available"
-            else:
-                self.scan_data["system_info"]["secure_boot"] = "Not Available (Legacy BIOS)"
-            print_color(f"  ✅ Secure Boot: {self.scan_data['system_info']['secure_boot']}", Colors.GRAY)
-        except Exception as e:
-            self.scan_data["system_info"]["secure_boot"] = "Unknown"
-            print_color(f"  ⚠️ Could not get Secure Boot status: {e}", Colors.YELLOW)
+        one_drive_path = self.get_onedrive_path()
         
-        # DMA Protection
-        try:
-            key_path = r"SYSTEM\CurrentControlSet\Control\DeviceGuard"
-            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key_path) as key:
-                try:
-                    value, _ = winreg.QueryValueEx(key, "EnableDmaProtection")
-                    self.scan_data["system_info"]["dma_protection"] = "Enabled" if value == 1 else "Disabled"
-                except FileNotFoundError:
-                    self.scan_data["system_info"]["dma_protection"] = "Disabled"
-            print_color(f"  ✅ DMA Protection: {self.scan_data['system_info']['dma_protection']}", Colors.GRAY)
-        except Exception as e:
-            self.scan_data["system_info"]["dma_protection"] = "Unknown"
-            print_color(f"  ⚠️ Could not get DMA Protection status: {e}", Colors.YELLOW)
-        
-        print_color("  ✅ System info collected", Colors.GREEN)
-
-    # ==================== SECURITY STATUS FUNCTIONS ====================
-    def get_security_status(self):
-        """Check security status"""
-        print_color("🛡️ Checking Security Status...", Colors.CYAN)
-        
-        # Check Windows Defender status
-        try:
-            result = subprocess.run(
-                ['powershell', '-Command', 'Get-MpComputerStatus | ConvertTo-Json'],
-                capture_output=True, text=True, check=False
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                defender_data = json.loads(result.stdout)
-                self.scan_data["security"]["defender_enabled"] = defender_data.get("AntivirusEnabled", False)
-                self.scan_data["security"]["realtime"] = defender_data.get("RealTimeProtectionEnabled", False)
-                self.scan_data["security"]["firewall"] = defender_data.get("FirewallEnabled", False)
-                print_color(f"  ✅ Defender Enabled: {self.scan_data['security']['defender_enabled']}", Colors.GRAY)
-                print_color(f"  ✅ Real-time: {self.scan_data['security']['realtime']}", Colors.GRAY)
-            else:
-                self.scan_data["security"]["defender_enabled"] = False
-                self.scan_data["security"]["realtime"] = False
-                print_color("  ⚠️ Could not get Defender status via PowerShell", Colors.YELLOW)
-        except Exception as e:
-            self.scan_data["security"]["defender_enabled"] = False
-            self.scan_data["security"]["realtime"] = False
-            print_color(f"  ⚠️ Error checking Defender: {e}", Colors.YELLOW)
-        
-        # Check for third-party AV via WMI
-        try:
-            result = subprocess.run(
-                ['powershell', '-Command', 
-                 'Get-WmiObject -Namespace "root\\SecurityCenter2" -Class AntiVirusProduct | Where-Object { $_.displayName -ne "Windows Defender" } | Select-Object displayName | ConvertTo-Json'],
-                capture_output=True, text=True, check=False
-            )
-            if result.returncode == 0 and result.stdout.strip() and result.stdout.strip() != "null":
-                try:
-                    av_data = json.loads(result.stdout)
-                    if isinstance(av_data, list):
-                        av_list = [av.get("displayName") for av in av_data if av.get("displayName")]
-                    else:
-                        av_list = [av_data.get("displayName")] if av_data.get("displayName") else []
-                    
-                    self.scan_data["security"]["antivirus_enabled"] = len(av_list) > 0
-                    self.scan_data["security"]["antivirus_list"] = av_list
-                    
-                    if av_list:
-                        print_color(f"  ⚠️ Third-party AV detected: {', '.join(av_list)}", Colors.YELLOW)
-                    else:
-                        print_color("  ✅ No third-party AV detected", Colors.GRAY)
-                except:
-                    self.scan_data["security"]["antivirus_enabled"] = False
-                    print_color("  ✅ No third-party AV detected", Colors.GRAY)
-            else:
-                self.scan_data["security"]["antivirus_enabled"] = False
-                print_color("  ✅ No third-party AV detected", Colors.GRAY)
-        except Exception as e:
-            self.scan_data["security"]["antivirus_enabled"] = False
-            print_color(f"  ⚠️ Could not check third-party AV: {e}", Colors.YELLOW)
-        
-        print_color("  ✅ Security status collected", Colors.GREEN)
-
-    # ==================== THREAT HISTORY FUNCTIONS ====================
-    def get_threat_history(self):
-        """Check threat history"""
-        print_color("🦠 Checking Threat History...", Colors.CYAN)
-        
-        try:
-            result = subprocess.run(
-                ['powershell', '-Command', 'Get-MpThreat | ConvertTo-Json -Depth 3'],
-                capture_output=True, text=True, check=False
-            )
-            if result.returncode == 0 and result.stdout.strip() and result.stdout.strip() != "null":
-                try:
-                    threat_data = json.loads(result.stdout)
-                    if isinstance(threat_data, list):
-                        threats = threat_data
-                    else:
-                        threats = [threat_data] if threat_data else []
-                    
-                    for threat in threats:
-                        self.scan_data["threats"].append({
-                            "name": threat.get("ThreatName", "Unknown"),
-                            "severity": threat.get("SeverityID", 0),
-                            "path": threat.get("ExecutionPath", "Unknown"),
-                            "time": threat.get("InitialDetectionTime", "Unknown")
-                        })
-                    
-                    if self.scan_data["threats"]:
-                        print_color(f"  ⚠️ Found {len(self.scan_data['threats'])} threats in history", Colors.YELLOW)
-                    else:
-                        print_color("  ✅ No threats found in history", Colors.GREEN)
-                except json.JSONDecodeError:
-                    print_color("  ✅ No threats found in history", Colors.GREEN)
-            else:
-                print_color("  ✅ No threats found in history", Colors.GREEN)
-        except Exception as e:
-            print_color(f"  ⚠️ Could not access threat history: {e}", Colors.YELLOW)
-
-    # ==================== FILE SCANNING FUNCTIONS ====================
-    def scan_files(self):
-        """Scan for executable and suspicious files"""
-        print_color("📁 Scanning for files...", Colors.CYAN)
-        
-        # Define search paths
-        user_profile = os.environ.get('USERPROFILE', 'C:\\Users\\Default')
         search_paths = [
             "C:\\Users",
             "C:\\Program Files",
             "C:\\Program Files (x86)",
             "C:\\Windows\\Temp",
-            os.path.join(user_profile, "Downloads"),
-            os.path.join(user_profile, "Desktop"),
-            os.path.join(user_profile, "Documents")
+            "C:\\Temp"
         ]
         
-        # EXE Files
-        print_color("  🔍 Searching for EXE files...", Colors.GRAY)
-        exe_files = []
+        if one_drive_path:
+            search_paths.append(one_drive_path)
+        
+        one_drive_files = []
+        all_files = []
+        
         for path in search_paths:
             if os.path.exists(path):
                 try:
                     for root, dirs, files in os.walk(path):
-                        if len(exe_files) >= 1000:
-                            break
+                        dirs[:] = [d for d in dirs if d.lower() not in ['windows', 'system32']]
+                        
                         for file in files:
-                            if file.lower().endswith('.exe'):
+                            if file.lower().endswith(('.rar', '.exe')):
                                 full_path = os.path.join(root, file)
-                                exe_files.append(full_path)
-                                if len(exe_files) >= 1000:
+                                all_files.append(full_path)
+                                
+                                if one_drive_path and one_drive_path in full_path:
+                                    one_drive_files.append(full_path)
+                                
+                                if len(all_files) > 1000:
                                     break
                 except (PermissionError, OSError):
                     continue
         
-        self.scan_data["files"]["exe_files"] = list(set(exe_files))[:1000]
-        self.scan_data["files"]["exe_count"] = len(self.scan_data["files"]["exe_files"])
-        print_color(f"    ✅ Found {self.scan_data['files']['exe_count']} EXE files", Colors.GREEN)
+        if one_drive_files:
+            self.write_log("\nOneDrive Files:")
+            for f in sorted(set(one_drive_files))[:100]:
+                self.write_log(f)
         
-        # RAR Files
-        print_color("  🔍 Searching for RAR files...", Colors.GRAY)
-        rar_files = []
-        for path in search_paths:
-            if os.path.exists(path):
-                try:
-                    for root, dirs, files in os.walk(path):
-                        if len(rar_files) >= 500:
-                            break
-                        for file in files:
-                            if file.lower().endswith('.rar'):
-                                full_path = os.path.join(root, file)
-                                rar_files.append(full_path)
-                                if len(rar_files) >= 500:
-                                    break
-                except (PermissionError, OSError):
-                    continue
+        self.write_log("\nAll Files Found:")
+        for f in sorted(set(all_files))[:500]:
+            self.write_log(f)
         
-        self.scan_data["files"]["rar_files"] = list(set(rar_files))[:500]
-        self.scan_data["files"]["rar_count"] = len(self.scan_data["files"]["rar_files"])
-        print_color(f"    ✅ Found {self.scan_data['files']['rar_count']} RAR files", Colors.GREEN)
+        self.scan_data['files_scanned'] = len(all_files)
+        print(f"{Colors.GREEN}  ✓ Found {len(all_files)} files{Colors.END}")
+    
+    def find_sus_files(self):
+        """Find suspicious files (10-char exe and Dapper.dll)"""
+        self.write_section("Suspicious Files")
+        print(f"{Colors.YELLOW}  Searching for suspicious files...{Colors.END}")
         
-        # Suspicious files (10-char exe and Dapper.dll)
-        print_color("  🔍 Searching for suspicious files...", Colors.GRAY)
-        suspicious_files = []
         pattern = re.compile(r'^[A-Za-z0-9]{10}\.exe$')
+        search_paths = [
+            "C:\\Users",
+            "C:\\Program Files",
+            "C:\\Program Files (x86)",
+            "C:\\Windows\\Temp",
+            "C:\\Temp"
+        ]
+        
+        sus_files = []
         
         for path in search_paths:
             if os.path.exists(path):
@@ -405,41 +820,41 @@ class R6XScanner:
                         for file in files:
                             if pattern.match(file) or file.lower() == "dapper.dll":
                                 full_path = os.path.join(root, file)
-                                suspicious_files.append(full_path)
+                                sus_files.append(full_path)
+                                self.write_log(full_path)
                 except (PermissionError, OSError):
                     continue
         
-        self.scan_data["files"]["suspicious"] = list(set(suspicious_files))
-        self.scan_data["files"]["sus_count"] = len(self.scan_data["files"]["suspicious"])
+        self.scan_data['suspicious_count'] = len(sus_files)
         
-        if self.scan_data["files"]["sus_count"] > 0:
-            print_color(f"    ⚠️ Found {self.scan_data['files']['sus_count']} suspicious files", Colors.YELLOW)
+        if sus_files:
+            print(f"{Colors.YELLOW}  ⚠ Found {len(sus_files)} suspicious files{Colors.END}")
         else:
-            print_color("    ✅ No suspicious files found", Colors.GREEN)
-
-    # ==================== REGISTRY EXECUTED PROGRAMS ====================
-    def get_executed_programs(self):
-        """Get recently executed programs from registry"""
-        print_color("📋 Checking recently executed programs...", Colors.CYAN)
-        
-        executed_programs = set()
+            print(f"{Colors.GREEN}  ✓ No suspicious files found{Colors.END}")
+    
+    def list_bam_state(self):
+        """Log registry entries from BAM and related keys"""
+        self.write_section("Registry - Executed Programs")
+        print(f"{Colors.YELLOW}  Checking registry for executed programs...{Colors.END}")
         
         # BAM entries
-        print_color("  🔍 Checking BAM registry...", Colors.GRAY)
         try:
-            key_path = r"SYSTEM\CurrentControlSet\Services\bam\State\UserSettings"
-            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key_path) as key:
+            bam_path = r"SYSTEM\CurrentControlSet\Services\bam\State\UserSettings"
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, bam_path) as key:
                 i = 0
                 while True:
                     try:
                         subkey_name = winreg.EnumKey(key, i)
                         with winreg.OpenKey(key, subkey_name) as subkey:
+                            self.write_log(f"\n{subkey_name}:")
                             j = 0
                             while True:
                                 try:
-                                    value_name, value_data, _ = winreg.EnumValue(subkey, j)
-                                    if re.search(r'\.exe|\.rar', value_name, re.I):
-                                        executed_programs.add(value_name)
+                                    name, value, _ = winreg.EnumValue(subkey, j)
+                                    if re.search(r'\.exe|\.rar', name, re.I):
+                                        if name not in self.logged_paths:
+                                            self.write_log(f"  {name}")
+                                            self.logged_paths.add(name)
                                     j += 1
                                 except WindowsError:
                                     break
@@ -447,63 +862,282 @@ class R6XScanner:
                     except WindowsError:
                         break
         except Exception as e:
-            print_color(f"    ⚠️ Could not access BAM registry: {e}", Colors.YELLOW)
+            self.write_log(f"BAM registry error: {e}")
         
         # AppCompat
-        print_color("  🔍 Checking AppCompat registry...", Colors.GRAY)
         try:
-            key_path = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Compatibility Assistant\Store"
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path) as key:
+            compat_path = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Compatibility Assistant\Store"
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, compat_path) as key:
+                self.write_log("\nAppCompat Store:")
                 i = 0
                 while True:
                     try:
-                        value_name, value_data, _ = winreg.EnumValue(key, i)
-                        if re.search(r'\.exe|\.rar', value_name, re.I):
-                            executed_programs.add(value_name)
+                        name, value, _ = winreg.EnumValue(key, i)
+                        if re.search(r'\.exe|\.rar', name, re.I) and name not in self.logged_paths:
+                            self.write_log(f"  {name}")
+                            self.logged_paths.add(name)
                         i += 1
                     except WindowsError:
                         break
-        except Exception as e:
-            print_color(f"    ⚠️ Could not access AppCompat registry: {e}", Colors.YELLOW)
+        except:
+            pass
         
         # AppSwitched
-        print_color("  🔍 Checking AppSwitched registry...", Colors.GRAY)
         try:
-            key_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FeatureUsage\AppSwitched"
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path) as key:
+            switched_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FeatureUsage\AppSwitched"
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, switched_path) as key:
+                self.write_log("\nAppSwitched:")
                 i = 0
                 while True:
                     try:
-                        value_name, value_data, _ = winreg.EnumValue(key, i)
-                        if re.search(r'\.exe|\.rar', value_name, re.I):
-                            executed_programs.add(value_name)
+                        name, value, _ = winreg.EnumValue(key, i)
+                        if re.search(r'\.exe|\.rar', name, re.I) and name not in self.logged_paths:
+                            self.write_log(f"  {name}")
+                            self.logged_paths.add(name)
+                        i += 1
+                    except WindowsError:
+                        break
+        except:
+            pass
+        
+        print(f"{Colors.GREEN}  ✓ Registry scan complete{Colors.END}")
+    
+    def log_browser_folders(self):
+        """Log installed browsers"""
+        self.write_section("Installed Browsers")
+        
+        try:
+            browsers_path = r"SOFTWARE\Clients\StartMenuInternet"
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, browsers_path) as key:
+                i = 0
+                while True:
+                    try:
+                        browser = winreg.EnumKey(key, i)
+                        self.write_log(browser)
                         i += 1
                     except WindowsError:
                         break
         except Exception as e:
-            print_color(f"    ⚠️ Could not access AppSwitched registry: {e}", Colors.YELLOW)
+            self.write_log(f"Browser detection error: {e}")
+    
+    def search_prefetch(self):
+        """Search prefetch files"""
+        self.write_section("Prefetch Files")
+        print(f"{Colors.YELLOW}  Checking Prefetch files...{Colors.END}")
         
-        self.scan_data["executed_programs"] = list(executed_programs)[:500]
-        print_color(f"  ✅ Found {len(self.scan_data['executed_programs'])} executed programs", Colors.GREEN)
-
-    # ==================== GAME BAN FUNCTIONS ====================
-    def check_r6_ban_status(self):
-        """Check Rainbow Six Siege ban status via stats.cc"""
-        print_color("  🎯 Checking Rainbow Six Siege accounts...", Colors.GRAY)
+        prefetch_path = os.path.join(os.environ.get('SYSTEMROOT', 'C:\\Windows'), 'Prefetch')
         
-        r6_accounts = []
+        if os.path.exists(prefetch_path):
+            try:
+                prefetch_files = []
+                for file in os.listdir(prefetch_path):
+                    if file.lower().endswith('.pf'):
+                        file_path = os.path.join(prefetch_path, file)
+                        try:
+                            mtime = os.path.getmtime(file_path)
+                            last_accessed = datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M:%S')
+                            prefetch_files.append(f"{file} - Last Accessed: {last_accessed}")
+                        except:
+                            prefetch_files.append(file)
+                
+                if prefetch_files:
+                    for pf in sorted(prefetch_files)[:200]:
+                        self.write_log(pf)
+                    print(f"{Colors.GREEN}  ✓ Found {len(prefetch_files)} prefetch files{Colors.END}")
+                else:
+                    self.write_log("No prefetch files found")
+            except Exception as e:
+                self.write_log(f"Error accessing prefetch: {e}")
+        else:
+            self.write_log("Prefetch folder not found")
+    
+    def log_windows_security(self):
+        """Log Windows Security status"""
+        self.write_section("Windows Security Status")
+        print(f"{Colors.YELLOW}  Checking Windows Security...{Colors.END}")
+        
+        try:
+            result = subprocess.run(
+                ['powershell', '-Command', 
+                 'Get-WmiObject -Namespace "root\\SecurityCenter2" -Class AntiVirusProduct | Select-Object displayName, productState | ConvertTo-Json'],
+                capture_output=True, text=True, check=False
+            )
+            
+            if result.returncode == 0 and result.stdout.strip() and result.stdout.strip() != "null":
+                try:
+                    av_data = json.loads(result.stdout)
+                    if isinstance(av_data, list):
+                        av_products = av_data
+                    else:
+                        av_products = [av_data] if av_data else []
+                    
+                    third_party = [av for av in av_products if av.get('displayName') != 'Windows Defender']
+                    
+                    if third_party:
+                        self.write_log("Third-Party Antivirus Detected:")
+                        for av in third_party:
+                            state = av.get('productState', 'Unknown')
+                            self.write_log(f"  Name: {av.get('displayName', 'Unknown')}, State: {state}")
+                    else:
+                        self.write_log("No third-party antivirus found")
+                        
+                        defender_result = subprocess.run(
+                            ['powershell', '-Command', 'Get-MpComputerStatus | ConvertTo-Json'],
+                            capture_output=True, text=True, check=False
+                        )
+                        if defender_result.returncode == 0 and defender_result.stdout.strip():
+                            defender = json.loads(defender_result.stdout)
+                            self.write_log(f"Defender Enabled: {defender.get('AntivirusEnabled', False)}")
+                            self.write_log(f"Real-Time Protection: {defender.get('RealTimeProtectionEnabled', False)}")
+                except:
+                    pass
+        except Exception as e:
+            self.write_log(f"Security check error: {e}")
+        
+        print(f"{Colors.GREEN}  ✓ Security check complete{Colors.END}")
+    
+    def log_protection_history(self):
+        """Log protection history threats"""
+        self.write_section("Protection History")
+        
+        try:
+            result = subprocess.run(
+                ['powershell', '-Command', 'Get-MpThreat | ConvertTo-Json -Depth 3'],
+                capture_output=True, text=True, check=False
+            )
+            
+            if result.returncode == 0 and result.stdout.strip() and result.stdout.strip() != "null":
+                try:
+                    threats = json.loads(result.stdout)
+                    if isinstance(threats, list):
+                        threat_list = threats
+                    else:
+                        threat_list = [threats] if threats else []
+                    
+                    if threat_list:
+                        for threat in threat_list:
+                            self.write_log(f"Threat: {threat.get('ThreatName', 'Unknown')}")
+                            self.write_log(f"  Severity: {threat.get('SeverityID', 'Unknown')}")
+                            self.write_log(f"  Path: {threat.get('ExecutionPath', 'Unknown')}")
+                            self.write_log(f"  Time: {threat.get('InitialDetectionTime', 'Unknown')}")
+                            self.write_log("")
+                    else:
+                        self.write_log("No threats found in protection history")
+                except:
+                    self.write_log("No threats found in protection history")
+            else:
+                self.write_log("No threats found in protection history")
+        except Exception as e:
+            self.write_log(f"Protection history error: {e}")
+    
+    def log_system_info(self):
+        """Log Secure Boot and DMA protection info"""
+        self.write_section("System Information")
+        print(f"{Colors.YELLOW}  Checking system information...{Colors.END}")
+        
+        try:
+            result = subprocess.run(
+                ['powershell', '-Command', 'Confirm-SecureBootUEFI'],
+                capture_output=True, text=True, check=False
+            )
+            if "True" in result.stdout:
+                secure_boot = "Enabled"
+            elif "False" in result.stdout:
+                secure_boot = "Disabled"
+            else:
+                secure_boot = "Not Available"
+            self.write_log(f"Secure Boot: {secure_boot}")
+        except:
+            self.write_log("Secure Boot: Unknown")
+        
+        try:
+            key_path = r"SYSTEM\CurrentControlSet\Control\DeviceGuard"
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key_path) as key:
+                try:
+                    value, _ = winreg.QueryValueEx(key, "EnableDmaProtection")
+                    dma = "Enabled" if value == 1 else "Disabled"
+                except:
+                    dma = "Disabled"
+                self.write_log(f"Kernel DMA Protection: {dma}")
+        except:
+            self.write_log("Kernel DMA Protection: Unknown")
+        
+        print(f"{Colors.GREEN}  ✓ System info collected{Colors.END}")
+    
+    def log_monitors(self):
+        """Log monitor information"""
+        self.write_section("Monitor Information")
+        
+        try:
+            result = subprocess.run(
+                ['powershell', '-Command', 
+                 'Get-CimInstance -Namespace root\\wmi -ClassName WmiMonitorID | ConvertTo-Json'],
+                capture_output=True, text=True, check=False
+            )
+            
+            if result.returncode == 0 and result.stdout.strip() and result.stdout.strip() != "null":
+                try:
+                    monitors = json.loads(result.stdout)
+                    if isinstance(monitors, list):
+                        monitor_list = monitors
+                    else:
+                        monitor_list = [monitors] if monitors else []
+                    
+                    for monitor in monitor_list:
+                        name_bytes = monitor.get("UserFriendlyName", [])
+                        serial_bytes = monitor.get("SerialNumberID", [])
+                        
+                        name = ''.join([chr(b) for b in name_bytes if b != 0]) if name_bytes else "Unknown"
+                        serial = ''.join([chr(b) for b in serial_bytes if b != 0]) if serial_bytes else "Unknown"
+                        
+                        self.write_log(f"Monitor: {name}, Serial: {serial}")
+                except:
+                    self.write_log("Could not parse monitor information")
+            else:
+                self.write_log("No monitor information found")
+        except Exception as e:
+            self.write_log(f"Monitor detection error: {e}")
+    
+    def log_pcie_devices(self):
+        """Log PCIe devices"""
+        self.write_section("PCIe Devices")
+        
+        try:
+            result = subprocess.run(
+                ['powershell', '-Command', 
+                 'Get-PnpDevice | Where-Object { $_.InstanceId -like "PCI*" } | Select-Object FriendlyName, Status -First 50 | ConvertTo-Json'],
+                capture_output=True, text=True, check=False
+            )
+            
+            if result.returncode == 0 and result.stdout.strip() and result.stdout.strip() != "null":
+                try:
+                    devices = json.loads(result.stdout)
+                    if isinstance(devices, list):
+                        device_list = devices
+                    else:
+                        device_list = [devices] if devices else []
+                    
+                    for device in device_list:
+                        self.write_log(f"Name: {device.get('FriendlyName', 'Unknown')}, Status: {device.get('Status', 'Unknown')}")
+                except:
+                    self.write_log("Could not parse PCIe device information")
+            else:
+                self.write_log("No PCIe devices found")
+        except Exception as e:
+            self.write_log(f"PCIe detection error: {e}")
+    
+    def log_r6_accounts(self):
+        """Log Rainbow Six Siege accounts"""
+        self.write_section("Rainbow Six Siege Accounts")
+        print(f"{Colors.YELLOW}  Checking R6 accounts...{Colors.END}")
+        
         username = os.environ.get('USERNAME', '')
-        
-        # Paths to check for R6 accounts
         r6_paths = [
             f"C:\\Users\\{username}\\Documents\\My Games\\Rainbow Six - Siege",
-            f"C:\\Users\\{username}\\AppData\\Local\\Ubisoft Game Launcher\\spool",
-            "C:\\Program Files (x86)\\Ubisoft\\Ubisoft Game Launcher\\savegames",
-            "C:\\Program Files (x86)\\Ubisoft\\Ubisoft Game Launcher\\cache\\ownership",
-            "C:\\Program Files (x86)\\Ubisoft\\Ubisoft Game Launcher\\cache\\club"
+            f"C:\\Users\\{username}\\AppData\\Local\\Ubisoft Game Launcher"
         ]
         
-        account_names = set()
+        accounts = []
         
         for path in r6_paths:
             if os.path.exists(path):
@@ -511,491 +1145,542 @@ class R6XScanner:
                     for item in os.listdir(path):
                         item_path = os.path.join(path, item)
                         if os.path.isdir(item_path):
-                            if re.match(r'^[a-f0-9]{32}$', item) or re.match(r'^[A-Za-z0-9]{3,20}$', item):
-                                account_names.add(item)
-                        elif os.path.isfile(item_path):
-                            if re.match(r'^[a-f0-9]{32}\.json$', item) or 'profile' in item.lower():
-                                account_names.add(os.path.splitext(item)[0])
-                except (PermissionError, OSError):
-                    continue
-        
-        if not account_names:
-            print_color("    ℹ️ No Rainbow Six Siege accounts found", Colors.GRAY)
-            return
-        
-        print_color(f"    🔍 Found {len(account_names)} potential R6 accounts, checking ban status...", Colors.GRAY)
-        
-        for account in account_names:
-            try:
-                time.sleep(0.5)  # Rate limiting
-                
-                url = f"https://stats.cc/siege/{account}"
-                print_color(f"      Checking: {account}", Colors.GRAY)
-                
-                headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                }
-                response = requests.get(url, headers=headers, timeout=10)
-                
-                if response.status_code == 200:
-                    content = response.text
-                    
-                    # Extract account name
-                    match = re.search(r'<title>Siege Stats - Stats\.CC (.*?) - Rainbow Six Siege Player Stats</title>', content)
-                    if match:
-                        account_name = match.group(1)
-                        
-                        # Check for bans
-                        ban_type = "None"
-                        status = "Active"
-                        
-                        if re.search(r'<div id="Ubisoft Bans".*?<div>Cheating</div>', content, re.DOTALL):
-                            ban_type = "Cheating"
-                            status = "BANNED"
-                        elif re.search(r'<div id="Ubisoft Bans".*?<div>Toxic Behavior</div>', content, re.DOTALL):
-                            ban_type = "Toxic Behavior"
-                            status = "BANNED"
-                        elif re.search(r'<div id="Ubisoft Bans".*?<div>Botting</div>', content, re.DOTALL):
-                            ban_type = "Botting"
-                            status = "BANNED"
-                        elif re.search(r'<div id="Reputation Bans".*?Reputation Bans', content, re.DOTALL):
-                            ban_type = "Reputation"
-                            status = "BANNED"
-                        
-                        # Check for match count
-                        match_count_match = re.search(r'<div class="text-2xl font-bold">([0-9,]+)</div>\s*<div class="text-xs opacity-60">Matches</div>', content)
-                        if match_count_match:
-                            match_count = match_count_match.group(1).replace(',', '')
-                            if status == "BANNED":
-                                result = f"{account_name} - {status} ({ban_type}) - Matches: {match_count}"
-                            else:
-                                result = f"{account_name} - Active - Matches: {match_count}"
-                        else:
-                            result = f"{account_name} - {status} {ban_type}"
-                        
-                        r6_accounts.append(result)
-                        
-                        if status == "BANNED":
-                            print_color(f"      ⚠️ {result}", Colors.RED)
-                        else:
-                            print_color(f"      ✅ {result}", Colors.GREEN)
-                elif response.status_code == 404:
-                    print_color(f"      ❌ Account not found on stats.cc: {account}", Colors.GRAY)
-                else:
-                    print_color(f"      ⚠️ Error checking {account}: HTTP {response.status_code}", Colors.YELLOW)
-            except requests.exceptions.Timeout:
-                print_color(f"      ⚠️ Timeout checking {account}", Colors.YELLOW)
-            except Exception as e:
-                print_color(f"      ⚠️ Error checking {account}: {e}", Colors.YELLOW)
-        
-        self.scan_data["game_bans"]["rainbow_six"] = r6_accounts
-
-    def check_steam_ban_status(self):
-        """Check Steam ban status via web scraping"""
-        print_color("  🎯 Checking Steam accounts via web scraping...", Colors.GRAY)
-        
-        steam_accounts = []
-        steam_ids = set()
-        steam_names = {}
-        
-        # Check avatar cache
-        avatar_cache = "C:\\Program Files (x86)\\Steam\\config\\avatarcache"
-        if os.path.exists(avatar_cache):
-            try:
-                for file in os.listdir(avatar_cache):
-                    if file.lower().endswith('.png'):
-                        steam_id = os.path.splitext(file)[0]
-                        if re.match(r'^7656[0-9]{13}$', steam_id):
-                            steam_ids.add(steam_id)
-                print_color(f"    🔍 Found {len(steam_ids)} Steam IDs from avatar cache", Colors.GRAY)
-            except Exception as e:
-                print_color(f"    ⚠️ Error reading avatar cache: {e}", Colors.YELLOW)
-        
-        # Check loginusers.vdf
-        login_users = "C:\\Program Files (x86)\\Steam\\config\\loginusers.vdf"
-        if os.path.exists(login_users):
-            try:
-                with open(login_users, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                
-                # Extract Steam IDs and account names
-                pattern = r'"([0-9]{17})"\s*{\s*"AccountName"\s*"([^"]+)"'
-                for match in re.finditer(pattern, content):
-                    steam_id = match.group(1)
-                    account_name = match.group(2)
-                    steam_ids.add(steam_id)
-                    steam_names[steam_id] = account_name
-                
-                print_color(f"    🔍 Found {len(steam_names)} Steam accounts from loginusers.vdf", Colors.GRAY)
-            except Exception as e:
-                print_color(f"    ⚠️ Error reading loginusers.vdf: {e}", Colors.YELLOW)
-        
-        if not steam_ids:
-            print_color("    ℹ️ No Steam accounts found", Colors.GRAY)
-            return
-        
-        print_color(f"    🔍 Checking ban status for {len(steam_ids)} Steam accounts via web scraping...", Colors.GRAY)
-        
-        for steam_id in steam_ids:
-            try:
-                time.sleep(2)  # Rate limiting
-                
-                account_name = steam_names.get(steam_id, "Unknown")
-                url = f"https://steamcommunity.com/profiles/{steam_id}"
-                print_color(f"      Checking: {account_name} ({steam_id})", Colors.GRAY)
-                
-                headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                }
-                response = requests.get(url, headers=headers, timeout=10)
-                
-                if response.status_code == 200:
-                    content = response.text
-                    
-                    # Check for bans
-                    ban_type = "None"
-                    status = "Clean"
-                    
-                    if re.search(r'VAC ban\(s\) on record|VAC Banned', content, re.I):
-                        status = "BANNED"
-                        ban_type = "VAC"
-                    
-                    if re.search(r'Game ban\(s\) on record|Game Banned', content, re.I):
-                        if status == "BANNED":
-                            ban_type += ", Game"
-                        else:
-                            status = "BANNED"
-                            ban_type = "Game"
-                    
-                    if re.search(r'community banned|Community Ban', content, re.I):
-                        if status == "BANNED":
-                            ban_type += ", Community"
-                        else:
-                            status = "BANNED"
-                            ban_type = "Community"
-                    
-                    # Extract profile name
-                    profile_match = re.search(r'<title>(.*?) :: Steam Community</title>', content)
-                    if profile_match:
-                        profile_name = profile_match.group(1).replace('Steam Community :: ', '')
-                        account_name = profile_name
-                    
-                    if status == "BANNED":
-                        result = f"{account_name} - {status} ({ban_type})"
-                        print_color(f"      ⚠️ {result}", Colors.RED)
-                    else:
-                        result = f"{account_name} - Clean (No bans detected)"
-                        print_color(f"      ✅ {result}", Colors.GREEN)
-                    
-                    steam_accounts.append(result)
-                    
-                elif response.status_code == 404:
-                    print_color(f"      ❌ Profile not found: {steam_id}", Colors.GRAY)
-                else:
-                    print_color(f"      ⚠️ Error checking {steam_id}: HTTP {response.status_code}", Colors.YELLOW)
-            except requests.exceptions.Timeout:
-                print_color(f"      ⚠️ Timeout checking {steam_id}", Colors.YELLOW)
-            except Exception as e:
-                print_color(f"      ⚠️ Error checking {steam_id}: {e}", Colors.YELLOW)
-        
-        self.scan_data["game_bans"]["steam"] = steam_accounts
-
-    def get_game_ban_status(self):
-        """Main game ban check function"""
-        print_color("🎮 Checking game ban status...", Colors.CYAN)
-        
-        self.check_r6_ban_status()
-        self.check_steam_ban_status()
-        
-        print_color("  ✅ Game ban checks completed", Colors.GREEN)
-
-    # ==================== HARDWARE INFO FUNCTIONS ====================
-    def get_hardware_info(self):
-        """Collect hardware information"""
-        print_color("💻 Collecting hardware information...", Colors.CYAN)
-        
-        # Monitor info via PowerShell
-        print_color("  🔍 Checking monitors...", Colors.GRAY)
-        try:
-            result = subprocess.run(
-                ['powershell', '-Command', 
-                 'Get-CimInstance -Namespace root\\wmi -ClassName WmiMonitorID | ConvertTo-Json'],
-                capture_output=True, text=True, check=False
-            )
-            if result.returncode == 0 and result.stdout.strip() and result.stdout.strip() != "null":
-                try:
-                    monitor_data = json.loads(result.stdout)
-                    if isinstance(monitor_data, list):
-                        monitors = monitor_data
-                    else:
-                        monitors = [monitor_data] if monitor_data else []
-                    
-                    for monitor in monitors:
-                        name_bytes = monitor.get("UserFriendlyName", [])
-                        serial_bytes = monitor.get("SerialNumberID", [])
-                        
-                        name = ''.join([chr(b) for b in name_bytes if b != 0]) if name_bytes else "Unknown"
-                        serial = ''.join([chr(b) for b in serial_bytes if b != 0]) if serial_bytes else "Unknown"
-                        
-                        self.scan_data["hardware"]["monitors"].append({
-                            "name": name,
-                            "serial": serial
-                        })
-                    
-                    print_color(f"    ✅ Found {len(self.scan_data['hardware']['monitors'])} monitors", Colors.GREEN)
-                except:
-                    print_color("    ⚠️ Could not parse monitor info", Colors.YELLOW)
-            else:
-                print_color("    ⚠️ No monitor info found", Colors.YELLOW)
-        except Exception as e:
-            print_color(f"    ⚠️ Could not get monitor info: {e}", Colors.YELLOW)
-        
-        # PCIe devices
-        print_color("  🔍 Checking PCIe devices...", Colors.GRAY)
-        try:
-            result = subprocess.run(
-                ['powershell', '-Command', 
-                 'Get-PnpDevice | Where-Object { $_.InstanceId -like "PCI*" -and $_.Status -eq "OK" } | Select-Object FriendlyName, Status -First 50 | ConvertTo-Json'],
-                capture_output=True, text=True, check=False
-            )
-            if result.returncode == 0 and result.stdout.strip() and result.stdout.strip() != "null":
-                try:
-                    pcie_data = json.loads(result.stdout)
-                    if isinstance(pcie_data, list):
-                        devices = pcie_data
-                    else:
-                        devices = [pcie_data] if pcie_data else []
-                    
-                    for device in devices:
-                        self.scan_data["hardware"]["pcie_devices"].append({
-                            "name": device.get("FriendlyName", "Unknown"),
-                            "status": device.get("Status", "Unknown")
-                        })
-                    
-                    print_color(f"    ✅ Found {len(self.scan_data['hardware']['pcie_devices'])} PCIe devices", Colors.GREEN)
-                except:
-                    print_color("    ⚠️ Could not parse PCIe info", Colors.YELLOW)
-            else:
-                print_color("    ⚠️ No PCIe devices found", Colors.YELLOW)
-        except Exception as e:
-            print_color(f"    ⚠️ Could not get PCIe info: {e}", Colors.YELLOW)
-
-    # ==================== LOGITECH SCRIPTS ====================
-    def get_logitech_scripts(self):
-        """Check Logitech scripts"""
-        print_color("🎮 Checking Logitech scripts...", Colors.CYAN)
-        
-        scripts_path = os.path.join(os.environ.get('LOCALAPPDATA', ''), "LGHUB", "scripts")
-        
-        if os.path.exists(scripts_path):
-            try:
-                scripts = []
-                for root, dirs, files in os.walk(scripts_path):
-                    for file in files:
-                        full_path = os.path.join(root, file)
-                        mtime = os.path.getmtime(full_path)
-                        scripts.append({
-                            "path": full_path,
-                            "modified": datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M:%S')
-                        })
-                        if len(scripts) >= 100:
-                            break
-                
-                self.scan_data["logitech_scripts"] = scripts
-                print_color(f"  ✅ Found {len(scripts)} Logitech scripts", Colors.GREEN)
-            except Exception as e:
-                print_color(f"  ⚠️ Could not read Logitech scripts: {e}", Colors.YELLOW)
-        else:
-            print_color("  ℹ️ No Logitech scripts found", Colors.GRAY)
-
-    # ==================== PREFETCH FILES ====================
-    def get_prefetch_files(self):
-        """Check prefetch files"""
-        print_color("📂 Checking Prefetch files...", Colors.CYAN)
-        
-        prefetch_path = os.path.join(os.environ.get('SYSTEMROOT', 'C:\\Windows'), "Prefetch")
-        
-        if os.path.exists(prefetch_path):
-            try:
-                prefetch_files = []
-                for file in os.listdir(prefetch_path):
-                    if file.lower().endswith('.pf'):
-                        full_path = os.path.join(prefetch_path, file)
-                        mtime = os.path.getmtime(full_path)
-                        prefetch_files.append({
-                            "name": file,
-                            "last_accessed": datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M:%S')
-                        })
-                
-                # Sort by last accessed (newest first)
-                prefetch_files.sort(key=lambda x: x['last_accessed'], reverse=True)
-                self.scan_data["prefetch"] = prefetch_files[:200]
-                
-                print_color(f"  ✅ Found {len(self.scan_data['prefetch'])} prefetch files", Colors.GREEN)
-            except Exception as e:
-                print_color(f"  ⚠️ Could not read prefetch files: {e}", Colors.YELLOW)
-        else:
-            print_color("  ℹ️ Prefetch folder not found", Colors.GRAY)
-
-    # ==================== SEND DATA TO DISCORD ====================
-    def send_to_discord(self):
-        """Send scan data to Discord bot"""
-        print_color("", Colors.END)
-        print_color("📤 Sending data to Discord bot...", Colors.CYAN)
-        
-        headers = {
-            'Content-Type': 'application/json',
-            'X-API-Key': API_KEY
-        }
-        
-        try:
-            print_color(f"  📡 Connecting to {API_URL}...", Colors.GRAY)
-            response = requests.post(
-                API_URL,
-                headers=headers,
-                json=self.scan_data,
-                timeout=30
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                if result.get('status') == 'success':
-                    print_color("  ✅ Data sent successfully!", Colors.GREEN)
-                    print_color(f"  📊 Response: {result.get('message', '')}", Colors.CYAN)
-                    return True
-                else:
-                    print_color(f"  ❌ Server returned error: {result.get('message', 'Unknown')}", Colors.RED)
-                    return False
-            else:
-                print_color(f"  ❌ HTTP Error: {response.status_code}", Colors.RED)
-                try:
-                    error_data = response.json()
-                    print_color(f"  📝 Server error: {error_data.get('detail', 'Unknown')}", Colors.RED)
+                            accounts.append(item)
+                            self.write_log(f"Account: {item}")
                 except:
                     pass
-                return False
+        
+        if not accounts:
+            self.write_log("No R6 accounts found")
+        
+        self.scan_data['r6_count'] = len(accounts)
+        print(f"{Colors.GREEN}  ✓ Found {len(accounts)} R6 accounts{Colors.END}")
+    
+    def log_steam_accounts(self):
+        """Log Steam accounts"""
+        self.write_section("Steam Accounts")
+        print(f"{Colors.YELLOW}  Checking Steam accounts...{Colors.END}")
+        
+        steam_config = "C:\\Program Files (x86)\\Steam\\config\\loginusers.vdf"
+        accounts = []
+        
+        if os.path.exists(steam_config):
+            try:
+                with open(steam_config, 'r', encoding='utf-8') as f:
+                    content = f.read()
                 
-        except requests.exceptions.Timeout:
-            print_color("  ❌ Request timed out", Colors.RED)
-            return False
-        except requests.exceptions.ConnectionError:
-            print_color("  ❌ Connection error - check your internet", Colors.RED)
-            return False
+                pattern = r'"(\d+)"\s*{\s*"AccountName"\s*"([^"]*)"'
+                matches = re.finditer(pattern, content)
+                
+                for match in matches:
+                    account_id = match.group(1)
+                    account_name = match.group(2)
+                    self.write_log(f"Account: {account_name} (ID: {account_id})")
+                    accounts.append(account_name)
+            except Exception as e:
+                self.write_log(f"Error reading Steam config: {e}")
+        else:
+            self.write_log("Steam not found or no accounts configured")
+        
+        self.scan_data['steam_count'] = len(accounts)
+        print(f"{Colors.GREEN}  ✓ Found {len(accounts)} Steam accounts{Colors.END}")
+    
+    def find_registry_subkeys(self):
+        """Find registry subkeys under AllowedBuses"""
+        self.write_section("Registry - AllowedBuses")
+        
+        reg_path = r"SYSTEM\CurrentControlSet\Control\DmaSecurity\AllowedBuses"
+        
+        try:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, reg_path) as key:
+                i = 0
+                subkeys = []
+                while True:
+                    try:
+                        subkey = winreg.EnumKey(key, i)
+                        subkeys.append(subkey)
+                        i += 1
+                    except WindowsError:
+                        break
+                
+                if subkeys:
+                    for sk in subkeys:
+                        self.write_log(sk)
+                else:
+                    self.write_log("No subkeys found (only default key exists)")
+        except:
+            self.write_log("Registry path not found")
+    
+    def scan_logitech_scripts(self):
+        """Scan for Logitech scripts (flags ALL .lua files)"""
+        self.write_section("Logitech Script Detection")
+        print(f"{Colors.YELLOW}  Scanning for ALL Logitech scripts (.lua files)...{Colors.END}")
+        
+        # Find all scripts
+        self.logitech_results = LogitechScriptDetector.find_scripts()
+        
+        # Write results to log
+        self.write_log(f"\nTotal Logitech Scripts Found: {self.logitech_results['total_scripts']}")
+        self.write_log(f"Logitech Software Running: {self.logitech_results['logitech_running']}")
+        
+        if self.logitech_results['total_scripts'] > 0:
+            self.write_log("\nAll Scripts Found (ALL .lua files are flagged):")
+            for script in self.logitech_results['all_scripts']:
+                self.write_log(f"\n  📄 Name: {script['name']}")
+                self.write_log(f"     Path: {script['path']}")
+                self.write_log(f"     Size: {script['size']} bytes")
+                self.write_log(f"     Modified: {script['modified']}")
+                
+                if script.get('game'):
+                    self.write_log(f"     Game: {script['game']}")
+                if script.get('has_recoil'):
+                    self.write_log(f"     ⚠ Has Recoil Control")
+                if script.get('has_rapid_fire'):
+                    self.write_log(f"     ⚠ Has Rapid Fire")
+                if script.get('has_aim_assist'):
+                    self.write_log(f"     ⚠ Has Aim Assist")
+                if script.get('has_mouse_movement'):
+                    self.write_log(f"     Has Mouse Movement")
+                if script.get('has_timing'):
+                    self.write_log(f"     Has Timing Controls")
+            
+            print(f"{Colors.YELLOW}  ⚠ Found {self.logitech_results['total_scripts']} .lua scripts (ALL flagged){Colors.END}")
+            
+            # Show first few scripts in console
+            for i, script in enumerate(self.logitech_results['all_scripts'][:5]):
+                game_info = f" [{script.get('game', 'Unknown')}]" if script.get('game') else ""
+                features = []
+                if script.get('has_recoil'):
+                    features.append("RECOIL")
+                if script.get('has_rapid_fire'):
+                    features.append("RAPID")
+                if script.get('has_aim_assist'):
+                    features.append("AIM")
+                
+                feature_str = f" ({', '.join(features)})" if features else ""
+                print(f"{Colors.WHITE}     {i+1}. {script['name']}{game_info}{feature_str}{Colors.END}")
+            
+            if len(self.logitech_results['all_scripts']) > 5:
+                print(f"{Colors.WHITE}     ... and {len(self.logitech_results['all_scripts']) - 5} more{Colors.END}")
+        else:
+            print(f"{Colors.GREEN}  ✓ No Logitech scripts found{Colors.END}")
+        
+        # Add to scan data
+        self.scan_data['logitech_scripts'] = self.logitech_results['total_scripts']
+        self.scan_data['logitech_running'] = self.logitech_results['logitech_running']
+        
+        print(f"{Colors.GREEN}  ✓ Logitech script scan complete{Colors.END}")
+    
+    def copy_to_clipboard(self):
+        """Copy log content to clipboard"""
+        try:
+            with open(self.log_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            pyperclip.copy(content)
+            print(f"{Colors.GREEN}✓ Log file copied to clipboard{Colors.END}")
         except Exception as e:
-            print_color(f"  ❌ Failed to send data: {e}", Colors.RED)
+            print(f"{Colors.YELLOW}⚠ Could not copy to clipboard: {e}{Colors.END}")
+    
+    def cleanup_files(self):
+        """Clean up temporary files"""
+        pc_check_desktop = os.path.join(self.desktop_path, "PcCheck.txt")
+        pc_check_downloads = os.path.join(self.downloads_path, "PcCheck.txt")
+        
+        for file_path in [pc_check_desktop, pc_check_downloads]:
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except:
+                    pass
+    
+    async def send_results_to_discord(self):
+        """Send scan results to Discord"""
+        if not DISCORD_AVAILABLE or not self.bot or not self.bot.ready:
+            print(f"{Colors.YELLOW}⚠ Cannot send results to Discord (bot not ready){Colors.END}")
             return False
-
-    # ==================== MAIN SCAN FUNCTION ====================
+        
+        try:
+            channel = self.bot.get_channel(self.channel_id)
+            if not channel:
+                print(f"{Colors.RED}❌ Could not find channel {self.channel_id}{Colors.END}")
+                return False
+            
+            # Create main embed
+            embed = Embed(
+                title="📊 R6X CyberScan Results",
+                description=f"Scan completed for <@{self.user_id}>",
+                color=Color.gold(),
+                timestamp=datetime.now()
+            )
+            
+            # Add scan stats
+            embed.add_field(
+                name="📁 Files Scanned",
+                value=f"```\n{self.scan_data.get('files_scanned', 0)} files\n```",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="⚠️ Suspicious Files",
+                value=f"```\n{self.scan_data.get('suspicious_count', 0)} files\n```",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="🎮 R6 Accounts",
+                value=f"```\n{self.scan_data.get('r6_count', 0)} accounts\n```",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="🎮 Steam Accounts",
+                value=f"```\n{self.scan_data.get('steam_count', 0)} accounts\n```",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="⏱️ Duration",
+                value=f"```\n{self.scan_data.get('duration', 0):.2f}s\n```",
+                inline=True
+            )
+            
+            # Add Logitech info
+            if self.logitech_results:
+                logitech_status = "🟢 Running" if self.logitech_results.get('logitech_running') else "🔴 Not Running"
+                embed.add_field(
+                    name="🎮 Logitech",
+                    value=f"```\n{logitech_status}\nScripts: {self.logitech_results.get('total_scripts', 0)}\n```",
+                    inline=True
+                )
+                
+                if self.logitech_results.get('total_scripts', 0) > 0:
+                    # List first few scripts with features
+                    script_lines = []
+                    for script in self.logitech_results['all_scripts'][:3]:
+                        features = []
+                        if script.get('has_recoil'):
+                            features.append("R")
+                        if script.get('has_rapid_fire'):
+                            features.append("F")
+                        if script.get('has_aim_assist'):
+                            features.append("A")
+                        
+                        feature_str = f" [{','.join(features)}]" if features else ""
+                        script_lines.append(f"{script['name']}{feature_str}")
+                    
+                    if len(self.logitech_results['all_scripts']) > 3:
+                        script_lines.append(f"... and {len(self.logitech_results['all_scripts']) - 3} more")
+                    
+                    embed.add_field(
+                        name="📜 Scripts Found",
+                        value=f"```\n" + "\n".join(script_lines) + "\n```",
+                        inline=False
+                    )
+            
+            embed.set_footer(text=f"Scan ID: {self.scan_id}")
+            
+            # Send embed with file
+            await channel.send(
+                content=f"<@{self.user_id}> - Your scan results are ready!",
+                embed=embed,
+                file=File(self.log_path)
+            )
+            
+            print(f"{Colors.GREEN}✅ Results sent to Discord!{Colors.END}")
+            return True
+            
+        except Exception as e:
+            print(f"{Colors.RED}❌ Failed to send to Discord: {e}{Colors.END}")
+            return False
+    
+    def send_to_discord_sync(self):
+        """Synchronous wrapper for sending to Discord"""
+        if not self.bot or not self.bot.ready:
+            print(f"{Colors.YELLOW}⚠ Bot not ready, cannot send to Discord{Colors.END}")
+            return False
+        
+        try:
+            # Get the bot's loop
+            loop = self.bot.loop
+            
+            # Check if we're in the bot's thread
+            if loop.is_running():
+                # Loop is already running, use run_coroutine_threadsafe
+                future = asyncio.run_coroutine_threadsafe(
+                    self.send_results_to_discord(), 
+                    loop
+                )
+                # Wait for the result with a timeout
+                return future.result(timeout=30)
+            else:
+                # Loop is not running, we can run it directly
+                loop.run_until_complete(self.send_results_to_discord())
+                return True
+                
+        except Exception as e:
+            print(f"{Colors.RED}❌ Failed to send to Discord: {e}{Colors.END}")
+            return False
+    
     def run_scan(self):
         """Run all scan functions"""
-        # First get a scan ID from the bot
-        if not self.get_scan_id_from_bot():
-            print_color("❌ Cannot proceed without scan ID. Make sure you're authorized and the bot is online.", Colors.RED)
-            input("Press Enter to exit...")
-            return
+        self.print_banner()
+        print()
         
-        self.start_time = time.time()
+        # Initialize log file
+        with open(self.log_path, 'w', encoding='utf-8') as f:
+            f.write(f"R6X CyberScan Log\n")
+            f.write(f"User ID: {self.user_id}\n")
+            f.write(f"Scan ID: {self.scan_id}\n")
+            f.write(f"Scan Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write("="*60 + "\n")
         
-        print_color("", Colors.END)
-        print_color("="*50, Colors.GRAY)
-        print_color("STARTING SCAN...", Colors.MAGENTA)
-        print_color("="*50, Colors.GRAY)
-        print_color("", Colors.END)
+        print(f"{Colors.CYAN}{'='*60}{Colors.END}")
+        print(f"{Colors.MAGENTA}Starting system scan...{Colors.END}")
+        print(f"{Colors.CYAN}{'='*60}{Colors.END}")
+        print()
         
-        # Run all scan functions
-        self.get_system_info()
-        self.get_security_status()
-        self.get_threat_history()
-        self.scan_files()
-        self.get_executed_programs()
-        self.get_hardware_info()
-        self.get_logitech_scripts()
-        self.get_prefetch_files()
-        self.get_game_ban_status()
+        # Run all scans
+        self.log_windows_install_date()
+        print()
         
-        self.end_time = time.time()
-        scan_duration = self.end_time - self.start_time
+        self.find_rar_exe_files()
+        print()
+        
+        self.find_sus_files()
+        print()
+        
+        self.list_bam_state()
+        print()
+        
+        self.log_browser_folders()
+        print()
+        
+        self.search_prefetch()
+        print()
+        
+        self.log_windows_security()
+        print()
+        
+        self.log_protection_history()
+        print()
+        
+        self.log_system_info()
+        print()
+        
+        self.find_registry_subkeys()
+        print()
+        
+        self.log_monitors()
+        print()
+        
+        self.log_pcie_devices()
+        print()
+        
+        self.scan_logitech_scripts()  # Flags ALL .lua files
+        print()
+        
+        self.log_r6_accounts()
+        print()
+        
+        self.log_steam_accounts()
+        print()
+        
+        # Calculate scan duration
+        self.scan_data['duration'] = time.time() - self.start_time
+        
+        # Add summary to log
+        self.write_section("Scan Summary")
+        self.write_log(f"Scan Duration: {self.scan_data['duration']:.2f} seconds")
+        self.write_log(f"Files Scanned: {self.scan_data['files_scanned']}")
+        self.write_log(f"Suspicious Files: {self.scan_data['suspicious_count']}")
+        self.write_log(f"R6 Accounts: {self.scan_data['r6_count']}")
+        self.write_log(f"Steam Accounts: {self.scan_data['steam_count']}")
+        
+        if self.logitech_results:
+            self.write_log(f"\nLogitech Scripts Found: {self.logitech_results.get('total_scripts', 0)}")
+            self.write_log(f"Logitech Running: {self.logitech_results.get('logitech_running', False)}")
         
         # Print summary
-        print_color("", Colors.END)
-        print_color("="*50, Colors.GRAY)
-        print_color("SCAN COMPLETE", Colors.GREEN)
-        print_color("="*50, Colors.GRAY)
-        print_color("", Colors.END)
-        print_color("📊 Scan Summary:", Colors.CYAN)
-        print_color(f"  ⏱️ Duration: {scan_duration:.2f} seconds", Colors.WHITE)
-        print_color(f"  💻 System: Windows Install: {self.scan_data['system_info'].get('install_date', 'Unknown')}", Colors.WHITE)
-        print_color(f"  🛡️ Security: Defender: {self.scan_data['security'].get('defender_enabled', False)}, Real-time: {self.scan_data['security'].get('realtime', False)}", Colors.WHITE)
-        print_color(f"  🦠 Threats: {len(self.scan_data['threats'])}", Colors.WHITE)
-        print_color(f"  📁 Files: {self.scan_data['files']['exe_count']} EXE, {self.scan_data['files']['rar_count']} RAR, {self.scan_data['files']['sus_count']} Suspicious", Colors.WHITE)
-        print_color(f"  📋 Executed Programs: {len(self.scan_data['executed_programs'])}", Colors.WHITE)
-        print_color(f"  🎮 R6 Accounts: {len(self.scan_data['game_bans']['rainbow_six'])}", Colors.WHITE)
-        print_color(f"  🎮 Steam Accounts: {len(self.scan_data['game_bans']['steam'])}", Colors.WHITE)
-        print_color("", Colors.END)
+        print(f"{Colors.CYAN}{'='*60}{Colors.END}")
+        print(f"{Colors.GREEN}SCAN COMPLETE{Colors.END}")
+        print(f"{Colors.CYAN}{'='*60}{Colors.END}")
+        print(f"{Colors.WHITE}Duration: {self.scan_data['duration']:.2f} seconds{Colors.END}")
+        print(f"{Colors.WHITE}Files Scanned: {self.scan_data['files_scanned']}{Colors.END}")
+        print(f"{Colors.WHITE}Suspicious Files: {self.scan_data['suspicious_count']}{Colors.END}")
+        print(f"{Colors.WHITE}R6 Accounts: {self.scan_data['r6_count']}{Colors.END}")
+        print(f"{Colors.WHITE}Steam Accounts: {self.scan_data['steam_count']}{Colors.END}")
         
-        # Send to Discord
-        success = self.send_to_discord()
+        if self.logitech_results:
+            print(f"{Colors.WHITE}Logitech Scripts: {self.logitech_results.get('total_scripts', 0)}{Colors.END}")
+            if self.logitech_results.get('logitech_running'):
+                print(f"{Colors.GREEN}  ✓ Logitech software is running{Colors.END}")
         
-        if success:
-            print_color("", Colors.END)
-            print_color("✅ Scan completed successfully! Check Discord for results.", Colors.GREEN)
-            print_color("You will be pinged when the results are posted.", Colors.CYAN)
+        print(f"{Colors.WHITE}Log saved to: {self.log_path}{Colors.END}")
+        print()
+        
+        # Copy to clipboard
+        self.copy_to_clipboard()
+        print()
+        
+        # Send results to Discord - ULTIMATE FIX
+        if self.bot and self.bot.ready:
+            try:
+                # Check if we're in a thread with a running event loop
+                try:
+                    # Try to get the current event loop
+                    loop = asyncio.get_running_loop()
+                    
+                    # If we get here, there's already a running loop
+                    # We need to create a task in that loop
+                    print(f"{Colors.YELLOW}⏳ Creating Discord task in existing loop...{Colors.END}")
+                    
+                    # Create a task in the existing loop
+                    loop.create_task(self.send_results_to_discord())
+                    
+                    print(f"{Colors.GREEN}✅ Discord task created successfully{Colors.END}")
+                    
+                except RuntimeError:
+                    # No running loop, we need to run it synchronously
+                    print(f"{Colors.YELLOW}⏳ No running loop, sending synchronously...{Colors.END}")
+                    self.send_to_discord_sync()
+                    
+            except Exception as e:
+                print(f"{Colors.RED}❌ Failed to send to Discord: {e}{Colors.END}")
         else:
-            print_color("", Colors.END)
-            print_color("❌ Scan completed but failed to send to Discord.", Colors.RED)
-            print_color("Please check your internet connection and try again.", Colors.YELLOW)
+            print(f"{Colors.YELLOW}⚠ Bot not ready, results saved locally{Colors.END}")
         
-        print_color("", Colors.END)
-        print_color("Thank you for using R6X XScan!", Colors.MAGENTA)
-        print_color("", Colors.END)
+        # Notify Render that scan is complete
+        notify_scan_complete(self.scan_id, self.user_id, self.scan_data, self.logitech_results)
         
-        input("Press Enter to exit...")
+        # Cleanup
+        self.cleanup_files()
+        
+        print(f"{Colors.GREEN}✓ Script execution completed{Colors.END}")
+        print()
 
-# ==================== MAIN ENTRY POINT ====================
+# ==================== BOT THREAD ====================
+def run_bot_in_thread(token: str, render_api_url: str, api_key: str) -> R6XBot:
+    """Run the Discord bot in a separate thread and return the bot instance"""
+    bot = R6XBot(render_api_url, api_key)
+    
+    async def start_bot():
+        try:
+            await bot.start(token)
+        except Exception as e:
+            print(f"{Colors.RED}❌ Bot error: {e}{Colors.END}")
+    
+    def run_bot():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(start_bot())
+    
+    thread = threading.Thread(target=run_bot, daemon=True)
+    thread.start()
+    return bot
+
+# ==================== MAIN ====================
 def main():
-    clear_screen()
-    
-    print_color("="*50, Colors.CYAN)
-    print_color("R6X XScan - Advanced System Security Scanner", Colors.CYAN)
-    print_color("="*50, Colors.CYAN)
-    print_color("", Colors.END)
-    
+    """Main entry point"""
     # Check if running on Windows
     if platform.system() != 'Windows':
-        print_color("❌ This scanner is designed for Windows only!", Colors.RED)
+        print(f"{Colors.RED}This scanner is designed for Windows only!{Colors.END}")
         input("Press Enter to exit...")
         sys.exit(1)
     
-    # Check for admin rights (optional but recommended)
+    # Check for admin rights
     try:
         is_admin = ctypes.windll.shell32.IsUserAnAdmin()
         if not is_admin:
-            print_color("⚠️ Warning: Not running as Administrator. Some features may be limited.", Colors.YELLOW)
-            print_color("   For full scan capabilities, run as Administrator.\n", Colors.YELLOW)
+            print(f"{Colors.YELLOW}⚠ Warning: Not running as Administrator. Some features may be limited.{Colors.END}")
+            print()
     except:
         pass
     
-    # Get Discord User ID from user
-    print_color("Please enter your Discord User ID:", Colors.YELLOW)
-    print_color("(You can find this in Discord by enabling Developer Mode and right-clicking your profile)", Colors.GRAY)
-    user_id = input("> ").strip()
+    # Clear screen
+    os.system('cls' if os.name == 'nt' else 'clear')
+    
+    # Print header
+    print(f"{Colors.CYAN}{'='*60}{Colors.END}")
+    print(f"{Colors.CYAN}            R6X CYBERSCAN v4.0{Colors.END}")
+    print(f"{Colors.CYAN}{'='*60}{Colors.END}")
+    print()
+    
+    # STEP 1: Start Discord bot immediately (no user ID needed)
+    bot = None
+    channel_id = 0
+    
+    if DISCORD_AVAILABLE:
+        print(f"{Colors.YELLOW}🤖 Starting Discord bot...{Colors.END}")
+        
+        # Get bot token from Render (no user ID needed)
+        token_result = get_bot_token()
+        
+        if not token_result['success']:
+            print(f"{Colors.RED}❌ Failed to get bot token: {token_result.get('error', 'Unknown error')}{Colors.END}")
+            print(f"{Colors.YELLOW}Continuing without Discord bot...{Colors.END}")
+        else:
+            bot_token = token_result['bot_token']
+            channel_id = int(token_result['channel_id'])
+            
+            # Start bot in background
+            bot = run_bot_in_thread(bot_token, RENDER_API_URL, API_KEY)
+            print(f"{Colors.GREEN}✅ Discord bot started in background{Colors.END}")
+            print()
+            
+            # Give bot a moment to initialize
+            print(f"{Colors.YELLOW}⏳ Waiting for bot to initialize...{Colors.END}")
+            time.sleep(5)
+            print(f"{Colors.GREEN}✅ Bot is ready! You can now use Discord commands while using the scanner.{Colors.END}")
+            print()
+    else:
+        print(f"{Colors.RED}❌ Discord.py not installed. Bot cannot start.{Colors.END}")
+        print()
+    
+    # STEP 2: User login with Discord ID
+    print(f"{Colors.YELLOW}🔐 Please enter your Discord User ID to login:{Colors.END}")
+    user_id = input(f"{Colors.GREEN}> {Colors.END}").strip()
     
     if not user_id or not user_id.isdigit():
-        print_color("❌ Invalid Discord User ID. Please enter a numeric ID.", Colors.RED)
+        print(f"{Colors.RED}❌ Invalid Discord User ID. Please enter a numeric ID.{Colors.END}")
         input("Press Enter to exit...")
         sys.exit(1)
     
-    scanner = R6XScanner(user_id)
-    scanner.print_banner()
+    print()
+    
+    # STEP 3: Login user with their ID
+    print(f"{Colors.YELLOW}🔄 Logging in...{Colors.END}")
+    login_result = login_user(user_id)
+    
+    if not login_result['success']:
+        print(f"{Colors.RED}❌ Login failed: {login_result.get('error', 'Unknown error')}{Colors.END}")
+        print(f"{Colors.YELLOW}Make sure you have a valid key. Generate one in Discord with /generate_key{Colors.END}")
+        input("Press Enter to exit...")
+        sys.exit(1)
+    
+    scan_id = login_result['scan_id']
+    print(f"{Colors.GREEN}✅ Login successful!{Colors.END}")
+    print(f"{Colors.GREEN}✅ Scan ID: {scan_id}{Colors.END}")
+    print()
+    
+    # STEP 4: Create scanner and run the scan
+    scanner = R6XCyberScan(
+        user_id=user_id,
+        scan_id=scan_id,
+        channel_id=channel_id,
+        bot=bot
+    )
     
     try:
         scanner.run_scan()
     except KeyboardInterrupt:
-        print_color("\n\n⚠️ Scan cancelled by user.", Colors.YELLOW)
-        input("Press Enter to exit...")
+        print(f"\n{Colors.YELLOW}⚠ Scan cancelled by user{Colors.END}")
     except Exception as e:
-        print_color(f"\n❌ Unexpected error: {e}", Colors.RED)
-        input("Press Enter to exit...")
+        print(f"{Colors.RED}❌ Error: {e}{Colors.END}")
+        import traceback
+        traceback.print_exc()
+    
+    input(f"{Colors.GRAY}Press Enter to exit...{Colors.END}")
 
 if __name__ == "__main__":
     main()
