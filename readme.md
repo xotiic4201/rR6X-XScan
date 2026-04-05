@@ -229,7 +229,7 @@ This tool is for checking your own system or systems you have permission to chec
 
 **Made by xotiic**  
 *Trusted R6 PC Checker*  
-`xotiic` / `xotiic._.420`
+`https://discord.gg/SVvZFnct37` / `xotiic._.420`
 
 **[⬆ Back to top](#-r6x-cyberscan---anti-cheat-scanner-for-rainbow-six-siege)**
 
