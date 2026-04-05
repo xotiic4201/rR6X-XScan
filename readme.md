@@ -1,7 +1,3 @@
-Here's the **fixed and improved README** with the paid/source code info added:
-
----
-
 # 🎮 R6X CYBERSCAN - Anti-Cheat Scanner for Rainbow Six Siege
 
 > **The only PC checker you'll ever need for R6 Siege**
@@ -272,7 +268,7 @@ The filename has the date and time so you don't lose track.
 
 ## 📞 Need help?
 
-**Discord:** `xotiic` or `xotiic._.420`
+**Discord:** `https://discord.gg/SVvZFnct37` or `xotiic._.420`
 
 **When you message me, include:**
 - Screenshot of the error
@@ -296,7 +292,6 @@ Response time is usually within a day.
 **How to pay:**
 - CashApp
 - PayPal
-- Crypto (BTC, ETH, USDC)
 
 **DM `xotiic` on Discord.** Send $5, get the code. Easy.
 
