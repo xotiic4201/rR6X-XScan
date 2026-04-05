@@ -1,4 +1,13 @@
-# R6X Scanner - Complete Security Analysis Tool
+# R6X CYBERSCAN - Anti-Cheat Scanner for Rainbow Six Siege
+
+<div align="center">
+
+![R6X CYBERSCAN](https://img.shields.io/badge/R6X-CYBERSCAN-FF003C?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-4.0.0-00FF9D?style=for-the-badge)
+![Platform](https://img.shields.io/badge/platform-Windows-blue?style=for-the-badge)
+![Discord](https://img.shields.io/badge/Discord-Bot-5865F2?style=for-the-badge)
+
+**Professional security scanning with Discord key system - Keep your community cheat-free**
 
 ## What is R6X Scanner?
 
