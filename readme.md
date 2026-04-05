@@ -1,3 +1,7 @@
+Here's the **fixed and improved README** with the paid/source code info added:
+
+---
+
 # 🎮 R6X CYBERSCAN - Anti-Cheat Scanner for Rainbow Six Siege
 
 > **The only PC checker you'll ever need for R6 Siege**
@@ -31,6 +35,29 @@ It's a real, working PC checker that digs through someone's system and tells you
 | **Team captains** | Screen potential recruits |
 | **Community mods** | Keep your server clean |
 | **Players** | Prove you're legit |
+
+---
+
+## 💰 Pricing (real talk)
+
+| What | Price |
+|------|-------|
+| **Using the scanner** | FREE (just need a key) |
+| **Getting scan keys** | FREE (message xotiic) |
+| **Your own branded version** | $5 |
+| **Source code access** | $5 |
+
+**Yeah you read that right.** For $5 you get:
+
+- The complete source code
+- Permission to modify it
+- Your own branded version (put your name on it)
+- Run it for your own server/community
+- No recurring fees, no bullshit
+
+**Why $5?** Because I spent time making this and $5 keeps out the broke kids who just wanna reverse engineer it. Pay once, own it forever.
+
+**How to buy:** DM `xotiic` on Discord. CashApp, PayPal, or Crypto.
 
 ---
 
@@ -112,6 +139,49 @@ No key? No scan. Simple as that.
 6. One key = one scan (keeps people from abusing it)
 
 **Why the key system?** Keeps random people from spamming scans. Only legit users get access.
+
+---
+
+## 💻 Want your OWN version? (Source code)
+
+Yeah I sell it. $5 gets you everything.
+
+**What you get for $5:**
+
+```
+- Complete Python source code
+- PyQt6 GUI (fully customizable)
+- Discord bot integration
+- Backend API code
+- All scan modules
+- Right to modify and rebrand
+- Put your name on it
+- Run it for your own community
+```
+
+**What you can do with it:**
+
+- Change the colors, logos, branding
+- Add your own Discord bot
+- Modify what gets scanned
+- Host your own backend
+- Sell keys to your members
+- Pretty much whatever you want
+
+**What you CAN'T do:**
+
+- Resell the source code itself (don't be that guy)
+- Claim you made it from scratch
+
+**How to buy:**
+
+DM `xotiic` on Discord. Payment methods:
+
+- CashApp
+- PayPal
+- Crypto (BTC, ETH, USDC)
+
+Send $5, get the source code. Simple.
 
 ---
 
@@ -213,6 +283,25 @@ Response time is usually within a day.
 
 ---
 
+## 💸 Want to buy source code?
+
+**Price:** $5
+
+**What you get:**
+- Full source code
+- Right to modify
+- Right to rebrand
+- No recurring fees
+
+**How to pay:**
+- CashApp
+- PayPal
+- Crypto (BTC, ETH, USDC)
+
+**DM `xotiic` on Discord.** Send $5, get the code. Easy.
+
+---
+
 ## 📅 Version
 
 **v2.1.0** - April 2026
@@ -229,7 +318,9 @@ This tool is for checking your own system or systems you have permission to chec
 
 **Made by xotiic**  
 *Trusted R6 PC Checker*  
-`https://discord.gg/SVvZFnct37` / `xotiic._.420`
+`xotiic` / `xotiic._.420`
+
+**📥 [Download R6X_Scanner.exe](https://www.dropbox.com/scl/fi/lt8zoucbhq35lyqhumbub/R6X_Scanner.exe?rlkey=natflmd2f3viv7mi3dk6qikzc&st=h9nr1j9o&dl=0)**
 
 **[⬆ Back to top](#-r6x-cyberscan---anti-cheat-scanner-for-rainbow-six-siege)**
 
