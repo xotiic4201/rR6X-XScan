@@ -1,213 +1,236 @@
-# R6X CYBERSCAN - Anti-Cheat Scanner for Rainbow Six Siege
+# 🎮 R6X CYBERSCAN - Anti-Cheat Scanner for Rainbow Six Siege
 
-<div align="center">
-
-![R6X CYBERSCAN](https://img.shields.io/badge/R6X-CYBERSCAN-FF003C?style=for-the-badge)
-![Version](https://img.shields.io/badge/version-4.0.0-00FF9D?style=for-the-badge)
-![Platform](https://img.shields.io/badge/platform-Windows-blue?style=for-the-badge)
-![Discord](https://img.shields.io/badge/Discord-Bot-5865F2?style=for-the-badge)
-
-**Professional security scanning with Discord key system - Keep your community cheat-free**
-
-## What is R6X Scanner?
-
-R6X Scanner is a professional-grade security analysis tool designed specifically for Rainbow Six Siege players. It performs comprehensive system scans to detect cheating software, suspicious files, and potential security vulnerabilities on your Windows PC.
-
-## Features
-
-- **GPU-Style Visual Interface** - Animated fans, RGB lighting effects, and modern dark theme
-- **Full System Analysis** - Scans registry, files, processes, and installed software
-- **Cheat Detection** - Identifies known cheat software, loaders, injectors, and macros
-- **Logitech GHUB Analysis** - Detects suspicious Lua scripts and macro profiles
-- **Account Detection** - Finds Rainbow Six Siege and Steam accounts on your system
-- **Device Fingerprinting** - Analyzes connected hardware for spoofing detection
-- **Discord Integration** - Sends detailed scan reports to Discord channel
-- **Secure Key System** - Invite-only access with time-limited scan keys
-
-## What It Scans
-
-- Windows OS version, install date, and security settings
-- Registry execution traces (BAM, AppCompatFlags, MuiCache)
-- Prefetch files for recently executed programs
-- Downloads, Desktop, AppData folders for suspicious files
-- Logitech GHUB scripts and profiles
-- Rainbow Six Siege account folders
-- Steam accounts
-- Connected devices (display, network, mouse, USB)
-
-### Why Use It?
-
-| For | Benefit |
-|-----|---------|
-| **Server Admins** | Verify members before granting access to competitive servers |
-| **Tournament Organizers** | Quick pre-match checks with key-based access control |
-| **Team Leaders** | Screen potential teammates with verified scans |
-| **Community Managers** | Maintain clean, cheat-free environments with key system |
-| **Players** | Prove your system is clean with timestamped, verified scans |
-
-## System Requirements
-
-- **Windows 10 or 11** (64-bit only)
-- **Administrator privileges** (required for full system access)
-- **Internet connection** (for Discord API and key verification)
-- **Discord account** (for obtaining scan keys)
-
-## How to Run the EXE
-
-### Step 1: Get the Executable
-- Download `[R6X_Scanner.exe](https://www.dropbox.com/scl/fi/lt8zoucbhq35lyqhumbub/R6X_Scanner.exe?rlkey=natflmd2f3viv7mi3dk6qikzc&st=h9nr1j9o&dl=0)` from the provided link
-
-### Step 2: Run as Administrator
-- **Right-click** on `[R6X_Scanner.exe](https://www.dropbox.com/scl/fi/lt8zoucbhq35lyqhumbub/R6X_Scanner.exe?rlkey=natflmd2f3viv7mi3dk6qikzc&st=h9nr1j9o&dl=0)`
-- Select **"Run as Administrator"**
-- Click "Yes" on the UAC prompt
-
-### Step 3: Get Your Discord User ID
-1. Open Discord
-2. Go to Settings (gear icon)
-3. Click **"Advanced"** under App Settings
-4. Turn ON **"Developer Mode"**
-5. Right-click on your name anywhere in Discord
-6. Click **"Copy ID"**
-7. Paste this number somewhere (you'll need it)
-
-### Step 4: Get a Scan Key (if you don't have one)
-1. Contact **xotiic** on Discord
-2. Request access to R6X Scanner
-3. Receive your unique 12-character scan key
-4. Keys are valid for 30 days, one-time use
-
-### Step 5: Launch the Scanner
-1. The application will open with a login screen
-2. **Paste your Discord User ID** into the first box
-3. **Enter your Scan Key** (optional - can leave blank if you have a key already)
-4. Click **"AUTHENTICATE"**
-5. Wait 2-5 seconds for verification
-6. The scan will start automatically
-
-### Step 6: During the Scan
-- Watch the animated fans spin faster during active scanning
-- Monitor progress in the status bar (0-100%)
-- View real-time log of what's being scanned
-- The scan takes approximately 1-3 minutes
-
-### Step 7: After the Scan Completes
-You will receive:
-- **Risk Level** (CLEAN / MEDIUM / HIGH)
-- **Statistics** (Registry traces, files found, accounts detected)
-- **Report copied to your clipboard** automatically
-- **Report saved locally** in `C:\Users\[YourName]\R6X_Scans\`
-- **Report sent to Discord** (if bot is online)
-
-## Getting a Scan Key
-
-R6X Scanner uses an invite-only key system for security:
-
-1. **Message xotiic on Discord** (xotiic / xotiic._.420)
-2. Request access to R6X Scanner
-3. Provide your Discord User ID
-4. Receive your unique 12-character key
-5. Keys are valid for 30 days and can only be used once
-
-## Understanding Your Results
-
-### Risk Levels
-
-| Level | Color | Meaning |
-|-------|-------|---------|
-| **CLEAN** | 🟢 Green | No suspicious files or activities detected |
-| **MEDIUM** | 🟡 Yellow | 1-5 suspicious findings detected |
-| **HIGH** | 🔴 Red | 6+ suspicious findings detected |
-
-### What Findings Mean
-
-- **Registry Execution Trace** - A suspicious file was executed recently (tracked in Windows registry)
-- **Suspicious Name** - File contains cheat-related keywords (loader, inject, hack, cheat, spoof, bypass, crack, aimbot, triggerbot)
-- **Recently Modified** - Suspicious file was modified in the last 2 days
-- **GHUB Suspicious Script** - Logitech macro script contains recoil/aim assist code
-- **GHUB Profile with Macros** - Logitech profile contains macro definitions
-
-### Files Scanned
-The scanner looks for files with these extensions:
-- `.exe` - Executable programs
-- `.rar` - Compressed archives
-- `.tlscan` - Custom scan files
-- `.cfg` - Configuration files
-- `.lua` - Lua scripts (especially GHUB macros)
-
-## Troubleshooting
-
-### "Failed to authenticate" error
-- Ensure you entered the correct Discord User ID (numbers only, no spaces)
-- Make sure you have a valid, unused scan key
-- Check your internet connection
-- Verify the backend server is online
-
-### "Channel not found" error
-- The bot cannot see the designated Discord channel
-- Contact xotiic to fix the channel configuration
-
-### Application doesn't start
-- **Run as Administrator** (right-click → Run as Administrator)
-- Make sure Windows Defender isn't blocking it
-- Check if the file is corrupted (re-download)
-
-### Scan takes too long
-- First scan may take 2-3 minutes
-- Maximum 10,000 files are scanned
-- Subsequent scans are similar speed
-
-### "Bot token not available" warning
-- Reports will be saved locally instead of sent to Discord
-- File will be in `C:\Users\[YourName]\R6X_Scans\`
-- The scan still works normally
-
-### Report not showing in Discord
-- Check if the bot is online in the server
-- Reports are saved locally as backup
-- Check your `R6X_Scans` folder
-
-## Report Locations
-
-After each scan, reports are saved to:
-```
-C:\Users\[YOUR_USERNAME]\R6X_Scans\r6x_scan_YYYYMMDD_HHMMSS.txt
-```
-
-Example:
-```
-C:\Users\JohnDoe\R6X_Scans\r6x_scan_20260104_143022.txt
-```
-
-## Security & Privacy
-
-- **No data leaves your PC** except the scan report (sent to Discord channel)
-- **Reports are encrypted** during transmission
-- **Local backups** are stored in your user folder
-- **No keylogging or spying** - only scans for cheat-related files
-- **No personal information** is collected
-
-## Support
-
-- **Discord Username:** xotiic / xotiic._.420
-- **Response Time:** Usually within 24 hours
-- **When reporting issues, include:**
-  - Screenshot of the error
-  - Your Windows version
-  - Whether you ran as Administrator
-
-## Version Information
-
-**Current Version:** 2.1.0
-**Release Date:** April 2026
-**Status:** Stable
+> **The only PC checker you'll ever need for R6 Siege**
 
 ---
 
-**Created by xotiic**  
-*Trusted R6 PC Checker*  
-*Discord: xotiic / xotiic._.420*
+## ❓ What the hell is R6X Scanner?
 
-[⬆ Back to Top](#r6x-cyberscan---anti-cheat-scanner-for-rainbow-six-siege)
+Look, we all know the problem. You're running a competitive server, hosting a tournament, or just trying to find decent teammates. And you have NO idea if their PC is clean or if they're running every cheat under the sun.
+
+**R6X Scanner fixes that.**
+
+It's a real, working PC checker that digs through someone's system and tells you exactly what's there. Not some fake "trust me bro" screenshot. Actual proof.
+
+### What it actually does:
+
+- **Scans registry** - finds execution traces of cheat software
+- **Checks prefetch** - sees what programs have been run recently
+- **Hunts for suspicious files** - loaders, injectors, cracks, you name it
+- **Analyzes GHUB scripts** - catches those "totally legit" recoil macros
+- **Finds R6 accounts** - sees what accounts are on the system
+- **Checks Steam** - linked accounts and login history
+- **Device fingerprinting** - detects hardware spoofing attempts
+
+### Who actually uses this:
+
+| Who | Why |
+|-----|-----|
+| **Server owners** | Verify members before giving roles |
+| **Tournament hosts** | Quick pre-match checks |
+| **Team captains** | Screen potential recruits |
+| **Community mods** | Keep your server clean |
+| **Players** | Prove you're legit |
+
+---
+
+## 🖥️ System Requirements (it's not much)
+
+- Windows 10 or 11 (64-bit)
+- Administrator access (needed to actually scan stuff)
+- Internet connection (for keys and Discord)
+- Discord account (to get your key)
+
+---
+
+## 🚀 How to actually run this thing
+
+### Step 1: Download the EXE
+
+Grab it here: **[Download R6X_Scanner.exe](https://www.dropbox.com/scl/fi/lt8zoucbhq35lyqhumbub/R6X_Scanner.exe?rlkey=natflmd2f3viv7mi3dk6qikzc&st=h9nr1j9o&dl=0)**
+
+### Step 2: Run it properly
+
+**RIGHT CLICK** the file → **"Run as Administrator"**
+
+Yes, you HAVE to do this. Otherwise it can't access half the stuff it needs to check. Click Yes on the popup.
+
+### Step 3: Find your Discord ID (it's easy)
+
+1. Open Discord
+2. Settings (the gear icon bottom left)
+3. Click **"Advanced"**
+4. Turn ON **"Developer Mode"**
+5. Right click your name anywhere → **"Copy ID"**
+6. Paste that number somewhere. That's your user ID.
+
+### Step 4: Get a scan key
+
+Message **xotiic** on Discord (`xotiic` or `xotiic._.420`)
+
+Tell him you need a key. He'll send you a 12-character code.
+
+Keys last 30 days. One time use. Don't share it.
+
+### Step 5: Run the scan
+
+1. Open the app
+2. Paste your Discord ID in the first box
+3. Paste your scan key in the second box (optional if you already used one)
+4. Hit **"AUTHENTICATE"**
+5. Wait a few seconds
+6. Scan starts automatically
+
+### Step 6: Watch it do its thing
+
+- Fans spin up when it's actively scanning (looks cool ngl)
+- Progress bar shows how far along it is
+- Log window shows everything it's finding in real time
+- Takes about 1-3 minutes depending on your PC
+
+### Step 7: Get your results
+
+When it's done you get:
+
+- **Risk level** - CLEAN, MEDIUM, or HIGH
+- **Full stats** - registry traces, files found, accounts detected
+- **Report copied to your clipboard** (instant, just paste it anywhere)
+- **Text file saved** in `C:\Users\YOURNAME\R6X_Scans\`
+- **Discord report** sent to the server channel
+
+---
+
+## 🔑 Getting a Scan Key (the right way)
+
+No key? No scan. Simple as that.
+
+1. DM **xotiic** on Discord
+2. Tell him why you need access
+3. Give him your Discord ID
+4. He sends you a key
+5. Keys are valid for 30 days
+6. One key = one scan (keeps people from abusing it)
+
+**Why the key system?** Keeps random people from spamming scans. Only legit users get access.
+
+---
+
+## 📊 Reading your results
+
+### Risk levels explained
+
+| Result | What it means |
+|--------|---------------|
+| 🟢 **CLEAN** | Nothing suspicious found. You're good. |
+| 🟡 **MEDIUM** | 1-5 weird things found. Might be nothing, might be something. |
+| 🔴 **HIGH** | 6+ suspicious findings. Definitely worth a closer look. |
+
+### What the findings actually mean
+
+- **Registry Execution Trace** - Some sketchy file was run recently. Windows keeps receipts.
+- **Suspicious Name** - File name has cheat words (loader, inject, hack, aimbot, etc.)
+- **Recently Modified** - File was changed in the last 2 days
+- **GHUB Script** - Logitech macro file. If it has recoil/aim stuff... you know what that means.
+- **GHUB Profile** - Macro profiles. Same deal.
+
+### What files it looks for
+
+- `.exe` - programs
+- `.rar` - archives (where people hide stuff)
+- `.tlscan` - custom format
+- `.cfg` - config files
+- `.lua` - scripts (GHUB macros especially)
+
+---
+
+## 🔧 Having problems? Try this.
+
+### "Failed to authenticate"
+
+- Double check your Discord ID (numbers ONLY, no spaces)
+- Make sure your key isn't used already
+- Check your internet
+- Backend might be down (message xotiic)
+
+### App won't open
+
+- **Run as Administrator** (seriously, do this)
+- Windows Defender might be scared of it (add exception)
+- Redownload if corrupted
+
+### Scan taking forever
+
+- First scan is slowest (1-3 min)
+- It stops at 10,000 files so it doesn't take all day
+- Your PC might just be slow 🤷
+
+### "Bot token not available"
+
+- Report saves locally instead of Discord
+- Check `C:\Users\YOURNAME\R6X_Scans\`
+- Scan still works fine
+
+### Report not in Discord
+
+- Bot might be offline
+- Check your local backup folder
+- Send the text file manually
+
+---
+
+## 📁 Where reports go
+
+Every scan saves a text file here:
+
+```
+C:\Users\YOUR_USERNAME\R6X_Scans\r6x_scan_20260104_143022.txt
+```
+
+The filename has the date and time so you don't lose track.
+
+---
+
+## 🔒 Privacy stuff (read this)
+
+- Only the scan report leaves your PC (sent to Discord)
+- Reports are encrypted when sent
+- Local backups stay on YOUR computer
+- No keylogging. No spying. No bullshit.
+- No personal info collected
+
+---
+
+## 📞 Need help?
+
+**Discord:** `xotiic` or `xotiic._.420`
+
+**When you message me, include:**
+- Screenshot of the error
+- What Windows version you're on
+- If you ran as Admin (you better have)
+
+Response time is usually within a day.
+
+---
+
+## 📅 Version
+
+**v2.1.0** - April 2026
+
+---
+
+## ⚠️ Disclaimer (lawyer stuff)
+
+This tool is for checking your own system or systems you have permission to check. Don't be weird about it. If you're using cheats, this will probably find them. That's the point. Use at your own risk.
+
+---
+
+<div align="center">
+
+**Made by xotiic**  
+*Trusted R6 PC Checker*  
+`xotiic` / `xotiic._.420`
+
+**[⬆ Back to top](#-r6x-cyberscan---anti-cheat-scanner-for-rainbow-six-siege)**
 
 </div>
