@@ -1,4 +1,4 @@
-# 🎮 R6X CYBERSCAN - Anti-Cheat Scanner for Rainbow Six Siege
+# R6X CYBERSCAN - Anti-Cheat Scanner for Rainbow Six Siege
 
 > **The only PC checker you'll ever need for R6 Siege**
 
@@ -34,7 +34,7 @@ It's a real, working PC checker that digs through someone's system and tells you
 
 ---
 
-## 💰 Pricing (real talk)
+## Pricing (real talk)
 
 | What | Price |
 |------|-------|
@@ -57,7 +57,7 @@ It's a real, working PC checker that digs through someone's system and tells you
 
 ---
 
-## 🖥️ System Requirements (it's not much)
+## System Requirements (it's not much)
 
 - Windows 10 or 11 (64-bit)
 - Administrator access (needed to actually scan stuff)
@@ -66,7 +66,7 @@ It's a real, working PC checker that digs through someone's system and tells you
 
 ---
 
-## 🚀 How to actually run this thing
+## How to actually run this thing
 
 ### Step 1: Download the EXE
 
@@ -123,7 +123,7 @@ When it's done you get:
 
 ---
 
-## 🔑 Getting a Scan Key (the right way)
+## Getting a Scan Key (the right way)
 
 No key? No scan. Simple as that.
 
@@ -138,7 +138,7 @@ No key? No scan. Simple as that.
 
 ---
 
-## 💻 Want your OWN version? (Source code)
+## Want your OWN version? (Source code)
 
 Yeah I sell it. $5 gets you everything.
 
@@ -181,7 +181,7 @@ Send $5, get the source code. Simple.
 
 ---
 
-## 📊 Reading your results
+## Reading your results
 
 ### Risk levels explained
 
@@ -209,7 +209,7 @@ Send $5, get the source code. Simple.
 
 ---
 
-## 🔧 Having problems? Try this.
+## Having problems? Try this.
 
 ### "Failed to authenticate"
 
@@ -228,7 +228,7 @@ Send $5, get the source code. Simple.
 
 - First scan is slowest (1-3 min)
 - It stops at 10,000 files so it doesn't take all day
-- Your PC might just be slow 🤷
+- Your PC might just be slow 
 
 ### "Bot token not available"
 
@@ -244,7 +244,7 @@ Send $5, get the source code. Simple.
 
 ---
 
-## 📁 Where reports go
+## Where reports go
 
 Every scan saves a text file here:
 
@@ -256,7 +256,7 @@ The filename has the date and time so you don't lose track.
 
 ---
 
-## 🔒 Privacy stuff (read this)
+## Privacy stuff (read this)
 
 - Only the scan report leaves your PC (sent to Discord)
 - Reports are encrypted when sent
@@ -266,7 +266,7 @@ The filename has the date and time so you don't lose track.
 
 ---
 
-## 📞 Need help?
+## Need help?
 
 **Discord:** **[Support Server](https://discord.gg/SVvZFnct37)** or `xotiic._.420`
 
@@ -279,7 +279,7 @@ Response time is usually within a day.
 
 ---
 
-## 💸 Want to buy source code?
+## Want to buy source code?
 
 **Price:** $5
 
@@ -297,13 +297,13 @@ Response time is usually within a day.
 
 ---
 
-## 📅 Version
+## Version
 
 **v2.1.0** - April 2026
 
 ---
 
-## ⚠️ Disclaimer (lawyer stuff)
+## Disclaimer (lawyer stuff)
 
 This tool is for checking your own system or systems you have permission to check. Don't be weird about it. If you're using cheats, this will probably find them. That's the point. Use at your own risk.
 
@@ -315,7 +315,7 @@ This tool is for checking your own system or systems you have permission to chec
 *Trusted R6 PC Checker*  
 `xotiic` / `xotiic._.420`
 
-**📥 [Download R6X_Scanner.exe](https://www.dropbox.com/scl/fi/lt8zoucbhq35lyqhumbub/R6X_Scanner.exe?rlkey=natflmd2f3viv7mi3dk6qikzc&st=h9nr1j9o&dl=0)**
+**[Download R6X_Scanner.exe](https://www.dropbox.com/scl/fi/lt8zoucbhq35lyqhumbub/R6X_Scanner.exe?rlkey=natflmd2f3viv7mi3dk6qikzc&st=h9nr1j9o&dl=0)**
 
 **[⬆ Back to top](#-r6x-cyberscan---anti-cheat-scanner-for-rainbow-six-siege)**
 
