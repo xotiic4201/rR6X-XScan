@@ -268,7 +268,7 @@ The filename has the date and time so you don't lose track.
 
 ## 📞 Need help?
 
-**Discord:** `https://discord.gg/SVvZFnct37` or `xotiic._.420`
+**Discord:** **[Support Server](https://discord.gg/SVvZFnct37)** or `xotiic._.420`
 
 **When you message me, include:**
 - Screenshot of the error
