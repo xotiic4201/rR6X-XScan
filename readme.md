@@ -35,6 +35,16 @@ R6X Scanner is a professional-grade security analysis tool designed specifically
 - Steam accounts
 - Connected devices (display, network, mouse, USB)
 
+### Why Use It?
+
+| For | Benefit |
+|-----|---------|
+| **Server Admins** | Verify members before granting access to competitive servers |
+| **Tournament Organizers** | Quick pre-match checks with key-based access control |
+| **Team Leaders** | Screen potential teammates with verified scans |
+| **Community Managers** | Maintain clean, cheat-free environments with key system |
+| **Players** | Prove your system is clean with timestamped, verified scans |
+
 ## System Requirements
 
 - **Windows 10 or 11** (64-bit only)
@@ -197,3 +207,7 @@ C:\Users\JohnDoe\R6X_Scans\r6x_scan_20260104_143022.txt
 **Created by xotiic**  
 *Trusted R6 PC Checker*  
 *Discord: xotiic / xotiic._.420*
+
+[⬆ Back to Top](#r6x-cyberscan---anti-cheat-scanner-for-rainbow-six-siege)
+
+</div>
